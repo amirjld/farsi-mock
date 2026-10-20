@@ -154,6 +154,42 @@ curl "localhost:4000/users?page=2&limit=10&city=شیراز"
 
 نمونه‌های کامل توی [`examples`](./examples) هست: seed با Prisma، seed توی Next.js با Drizzle، و سرور mock با Express.
 
+</div>
+
+<div dir="rtl">
+
+## حالت mock برای فرانت
+
+بک‌اند endpointهاش آماده‌ست ولی دیتا نداره (یا اصلاً بالا نیست) و تو می‌خوای دیزاین رو ببینی و تست کنی؟ farsi-mock خودش جواب درخواست‌های فرانت رو می‌ده، **دقیقاً** با همون شکل API واقعی (همون envelope، همون pagination، همون اسم فیلدها). با یه env هم بین API واقعی و mock سوییچ می‌کنی.
+
+</div>
+
+```bash
+npx farsi-mock frontend https://api.example.com/swagger/v1/swagger.json -o src/mocks --base-url /api
+```
+
+```ts
+import { createApiFetch } from "farsi-mock/frontend/client";
+
+export const apiFetch = createApiFetch({
+  mode: process.env.NEXT_PUBLIC_API_MODE,   // api | mock | hybrid   (توی Vite: import.meta.env.VITE_API_MODE)
+  mock: () => import("@/mocks"),            // lazy؛ توی حالت api اصلاً لود نمی‌شه
+});
+```
+
+<div dir="rtl">
+
+- envelopeها رو خودش از روی OpenAPI پیدا می‌کنه: `{ data, meta }`، `{ items, total, page }`، `{ isSuccess, message, result }`، صفحه‌های Spring. فقط فیلدهایی که توی spec هست برمی‌گرده.
+- دیتا با هم جوره: محصول `/products/7` همونیه که توی لیست بود، `categoryId` به یه دسته‌بندی واقعی اشاره می‌کنه، `/categories/3/products` فقط محصولات همون دسته رو می‌ده. id ناشناخته هم با seed همیشه همون رکورد رو می‌سازه.
+- page و pageSize و offset، سرچ، sort (مثل `-price`) و فیلتر روی فیلدها کار می‌کنه.
+- POST و PUT و PATCH و DELETE واقعاً دیتا رو عوض می‌کنن. با `persist: true` توی localStorage می‌مونه و با `id` بعد از HMR هم از بین نمی‌ره.
+- برای تست حالت‌های خاص: `delay` برای لودینگ، `errorRate` و `errors` و `?__status=500` برای ارور. بدنه‌ی ارور هم شکل spec رو داره و پیامش فارسیه.
+- adapter داره برای fetch، axios (بدون وابستگی به axios)، MSW و Next.js (route handler با session جدا برای هر مرورگر، و middleware).
+- حالت `hybrid`: اول API واقعی رو صدا می‌زنه، اگه خالی برگشت یا قطع بود از mock جواب می‌ده.
+- spec نداری؟ با `createMockApi({ resources, routes, envelope: "result", crud: true })` دستی تعریفش کن.
+
+راهنمای کامل (انگلیسی): [docs/FRONTEND.md](./docs/FRONTEND.md). نمونه‌ها: [Next.js](./examples/nextjs-frontend-mock) و [Vite + React](./examples/vite-react-mock).
+
 ## برای AI
 
 `npx farsi-mock mcp` یه سرور MCP بدون وابستگیه (ابزارهای generate، schema، infer، validate و paths). توی سرورهای MCP دیگه (مثلاً parsi-mcp) هم می‌شه `tools` و `callTool` رو از `farsi-mock/ai` ایمپورت کرد. توضیح کامل: [docs/AI.md](./docs/AI.md). یه skill هم توی [`skills/farsi-mock`](./skills/farsi-mock/SKILL.md) هست.

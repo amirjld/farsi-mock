@@ -17,6 +17,7 @@ All randomness goes through one seeded PRNG per instance, so `createIran({ seed 
 - [Seeding](#seeding)
 - [Mock server](#mock-server)
 - [AI / MCP](#ai--mcp)
+- [Frontend mock mode](#frontend-mock-mode)
 - [Validators](#validators)
 - [Subpath exports](#subpath-exports)
 
@@ -266,6 +267,38 @@ import { tools, callTool, handleMcpMessage, serveMcpStdio } from "farsi-mock/ai"
 
 See [AI.md](./AI.md).
 
+## Frontend mock mode
+
+Guide with every option: [FRONTEND.md](./FRONTEND.md).
+
+```ts
+import { createMockApi, compileOpenAPI, openApiToTs, defineMockSpec } from "farsi-mock/frontend";
+import { createMockRuntime } from "farsi-mock/frontend/runtime";   // what generated src/mocks imports (also re-exports the adapters)
+import { createApiFetch, createMockFetch, installMockFetch, createAxiosAdapter, createMswHandlers, createNextRouteHandlers,
+  createMockMiddleware, combineMockApis, apiMode, isMockMode, isEmptyPayload } from "farsi-mock/frontend/client"; // app code
+```
+
+| API | Description |
+| --- | --- |
+| `createMockApi<E>(opts)` | `spec`: OpenAPI/Swagger object, JSON text, URL, compiled spec or a promise; or `resources` + `routes` + `envelope` + `crud`. Plus every runtime option below and compile options `overrides`, `images`, `nullRate`. |
+| `createMockRuntime<E>(spec, opts)` | Runtime only (pre-compiled spec). Options: `id`, `seed`, `referenceDate`, `count`, `baseUrl`, `pageSize`, `maxPageSize`, `delay`, `errorRate`, `errors`, `persist`, `strict`, `notFound`, `handlers`, `iran`, `onRequest`. |
+| `api.handle(req)` | `{ method, url, headers, body }` or a `Request` -> `{ status, statusText, headers, body, route }` or `undefined` (no route). |
+| `api.fetch(input, init)` | fetch-compatible, always a `Response`. |
+| `api.request(key, { params, query, body })` | Typed by the `Endpoints` map; throws `MockHttpError` for >= 400. |
+| `api.matches`, `api.rows`, `api.reset`, `api.fork`, `api.routes`, `api.ready`, `api.spec` | Utilities. |
+| `compileOpenAPI(doc, { overrides, count, basePath, images, nullRate })` | OpenAPI -> `MockSpec` (JSON-serializable). |
+| `defineMockSpec({ resources, routes, envelope, crud, basePath })` | Hand-written `MockSpec`. Presets in `ENVELOPES`. |
+| `openApiToTs(doc)` | TypeScript types + `Endpoints` map + `ResponseOf<K>`. |
+| `apiMode(value, fallback)` / `isMockMode(value)` | Parse `NEXT_PUBLIC_API_MODE` / `VITE_API_MODE`: `"api"`, `"mock"`, `"hybrid"`. |
+| `createApiFetch({ mode, mock, fetch, hybridFallback, onUnhandled, include })` | fetch for the current mode; `mock` can be a lazy `() => import(...)`. |
+| `createMockFetch(source, opts)` / `installMockFetch(source, opts)` | Mock fetch / patch `globalThis.fetch` (returns uninstall). |
+| `createAxiosAdapter(source, { fallback, mode, hybridFallback })` | axios `adapter`. |
+| `createMswHandlers(api, { http, baseUrl, catchAll })` | MSW 2 handlers. |
+| `createNextRouteHandlers(source, { mount, session })` | `{ GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS }` for a catch-all route. |
+| `createMockMiddleware(source, { prefix })` | `(req) => Response | undefined` for `middleware.ts`. |
+| `combineMockApis(...apis)` | Several backends as one. |
+| `isEmptyPayload(body)` / `defaultHybridFallback(info)` | Hybrid-mode helpers. |
+
 ## Validators
 
 ```ts
@@ -284,4 +317,7 @@ import { validate, isValidNationalId, isValidCardNumber, isValidSheba, isValidMo
 | `farsi-mock/server` | mock server | yes (`node:http`) |
 | `farsi-mock/validate`, `farsi-mock/jalali` | small, dependency-free helpers | no |
 | `farsi-mock/ai` | MCP tools and stdio server | stdio part only |
+| `farsi-mock/frontend` | frontend mock: OpenAPI compiler, runtime, adapters, type generator | no |
+| `farsi-mock/frontend/runtime` | frontend mock runtime and adapters only (for `farsi-mock frontend` snapshots) | no |
+| `farsi-mock/frontend/client` | API_MODE switch and adapters only, no runtime (import in app code) | no |
 | `farsi-mock/browser` | IIFE bundle, global `FarsiMock` (`<script src="https://unpkg.com/farsi-mock">`) | no |

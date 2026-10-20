@@ -41,7 +41,12 @@ from a real database, a real customer list or any private project.
   `realisticIds: true` / `--realistic-ids`.
 - Inference reads only the *shape* of sample files (types, formats, short code-like enum values); sample
   values are never copied into generated data.
-- URLs use `example.com` and IP addresses use the private `10.0.0.0/8` range.
+- URLs use `example.com` and IP addresses use the private `10.0.0.0/8` range. Image fields in frontend mock
+  mode are SVG placeholders generated on the fly (a coloured box with the size or initials), so no image
+  files or external image services are involved.
+- Frontend mock mode reads only the *structure* of your OpenAPI spec (paths, schemas, parameter names,
+  enums, limits, defaults/examples of envelope codes). It never copies example values of record fields; the
+  test fixture `test/fixtures/shop.openapi.json` is a synthetic spec written for this project.
 - Card and Sheba numbers are random and only *algorithmically* valid. There is no published Shetab test
   range, so a generated card can coincide with a real one. Never use generated data for real transactions
   or identity checks.

@@ -18,9 +18,12 @@ agrees with the others (same person, same province).
 - **Outputs**: JSON, CSV, JSONL, SQL (Postgres/MySQL/SQLite), MongoDB extended JSON, TypeScript fixtures
 - **Seed and mock**: batched seed helpers for Prisma, Drizzle, Mongoose and the Mongo driver; a mock REST
   server (`farsi-mock serve`); an MCP server for AI assistants (`farsi-mock mcp`)
+- **Frontend mock mode**: point it at your OpenAPI/Swagger spec and the frontend gets a mock backend in exactly
+  the real API's shape (envelopes, pagination, field names), switched by `NEXT_PUBLIC_API_MODE` / `VITE_API_MODE`;
+  adapters for fetch, axios, MSW and Next.js
 - Zero runtime dependencies, ESM + CommonJS + browser build, tree-shakable subpaths, deterministic with a seed
 
-[فارسی](./README.fa.md) · [API reference](./docs/API.md) · [AI / MCP](./docs/AI.md) · [Changelog](./CHANGELOG.md)
+[فارسی](./README.fa.md) · [API reference](./docs/API.md) · [Frontend mock mode](./docs/FRONTEND.md) · [AI / MCP](./docs/AI.md) · [Changelog](./CHANGELOG.md)
 
 > **For testing only.** Values are random and only *algorithmically* valid. National IDs are safe by
 > default (see below), but card and Sheba numbers can still coincide with real ones, so never use this
@@ -210,6 +213,7 @@ npx farsi-mock schema ./shop.json --seed 1          # multi-entity file with ref
 npx farsi-mock user -n 1000 --sql --dialect mysql --table users --create-table -o users.sql
 npx farsi-mock infer prisma/schema.prisma --explain
 npx farsi-mock serve ./shop.json --port 4000
+npx farsi-mock frontend openapi.json -o src/mocks --explain   # frontend mock module (see Frontend mock mode)
 npx farsi-mock mcp
 npx farsi-mock paths | banks | provinces | categories | holidays 1405
 ```
@@ -347,6 +351,47 @@ curl "localhost:4000/users?page=2&limit=10&city=شیراز&sort=-createdAt"
 ```
 
 See [`examples/`](./examples): Prisma seed, Next.js seed (Drizzle) + mock route, Express mock server.
+
+## Frontend mock mode
+
+The backend has endpoints but no data (or isn't running), and you still need to see and test the UI.
+farsi-mock answers the frontend's requests itself, in **exactly** the real API's shape, behind one env var:
+
+```bash
+npx farsi-mock frontend https://api.example.com/swagger/v1/swagger.json -o src/mocks --base-url /api
+# writes src/mocks/spec.ts (compiled, no OpenAPI parsing at runtime), types.ts (typed endpoints), index.ts (your options)
+```
+
+```ts
+// src/lib/api-fetch.ts
+import { createApiFetch } from "farsi-mock/frontend/client";
+
+export const apiFetch = createApiFetch({
+  mode: process.env.NEXT_PUBLIC_API_MODE,     // "api" | "mock" | "hybrid"  (Vite: import.meta.env.VITE_API_MODE)
+  mock: () => import("@/mocks"),              // lazy: production ("api") bundles carry ~1.4 KB, not the mocks
+});
+
+// TanStack Query, SWR, server components... just use apiFetch like fetch:
+const res = await apiFetch("/api/products?page=2&perPage=12&sort=-price&categoryId=3");
+// { data: [12 products], meta: { page: 2, perPage: 12, total: 30, totalPages: 3 } }  <- the spec's own envelope
+```
+
+- **Same shape as the API**: envelopes like `{ data, meta }`, `{ items, total, page }`, `{ isSuccess, message, result }`
+  and Spring pages are detected from the response schemas (`$ref`, `allOf`, `oneOf`); only fields in the spec are returned
+- **Consistent data**: `GET /products/7` is the same product as in the list (detail-only fields included);
+  foreign keys point at existing records; nested routes (`/categories/{id}/products`) filter by parent; unknown ids
+  get a deterministic record
+- **Real query handling**: page/size/offset (0- or 1-based), search, sort (`-price`, `price:desc`), field filters and ranges
+- **Writes**: POST/PUT/PATCH/DELETE change an in-memory store (`persist: true` keeps it in localStorage, `id` keeps it across HMR)
+- **Edge cases on demand**: `delay: [200, 800]`, `errorRate`, `errors: { "GET /orders": 503 }`, `?__status=500`; error
+  bodies follow the spec's error schema with Persian messages
+- **Adapters**: `createApiFetch` / `installMockFetch` (fetch), `createAxiosAdapter` (no axios dependency),
+  `createMswHandlers` (pass `http` from msw), `createNextRouteHandlers` (with per-browser sessions) and
+  `createMockMiddleware` for Next.js; `hybrid` mode uses the real API and falls back to mocks when it returns nothing
+- **No spec?** `createMockApi({ resources, routes, envelope: "result", crud: true })`
+
+Full guide: [docs/FRONTEND.md](./docs/FRONTEND.md). Examples: [Next.js](./examples/nextjs-frontend-mock),
+[Vite + React](./examples/vite-react-mock).
 
 ## AI assistants
 

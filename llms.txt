@@ -9,6 +9,7 @@ Safe by default: national IDs use the never-issued `000` prefix (valid checksum)
 - [README (Persian)](https://github.com/amirjld/farsi-mock/blob/main/README.fa.md)
 - [API reference](https://github.com/amirjld/farsi-mock/blob/main/docs/API.md)
 - [AI / MCP integration](https://github.com/amirjld/farsi-mock/blob/main/docs/AI.md)
+- [Frontend mock mode](https://github.com/amirjld/farsi-mock/blob/main/docs/FRONTEND.md): OpenAPI -> in-app mock backend with API_MODE switch
 - [Agent skill](https://github.com/amirjld/farsi-mock/blob/main/skills/farsi-mock/SKILL.md)
 - [Data sources and licences](https://github.com/amirjld/farsi-mock/blob/main/DATA_SOURCES.md)
 
@@ -21,4 +22,7 @@ Safe by default: national IDs use the never-issued `000` prefix (valid checksum)
 - `farsi-mock/seed`: `seedPrisma`, `seedDrizzle`, `seedMongoose`, `seedMongo`
 - `farsi-mock/server`: `createMockServer`
 - `farsi-mock/ai`: `tools`, `callTool`, `serveMcpStdio`
-- CLI: `farsi-mock <user|person|...|schema|infer|serve|mcp|paths>`
+- `farsi-mock/frontend`: `createMockApi({ spec: openapi | url | snapshot })` or `({ resources, routes, envelope, crud })`, `compileOpenAPI`, `openApiToTs`; frontend mock in the real API's exact shape (envelopes, pagination, CRUD, errors, latency)
+- `farsi-mock/frontend/runtime`: `createMockRuntime(spec)` (used by generated src/mocks)
+- `farsi-mock/frontend/client` (app code; keeps the runtime out of the main bundle): `createApiFetch({ mode: process.env.NEXT_PUBLIC_API_MODE, mock: () => import("./mocks") })` (api | mock | hybrid), `createAxiosAdapter`, `createMswHandlers`, `createNextRouteHandlers`, `createMockMiddleware`, `installMockFetch`, `combineMockApis`
+- CLI: `farsi-mock <user|person|...|schema|infer|serve|frontend|mcp|paths>`; `farsi-mock frontend openapi.json -o src/mocks` writes spec.ts + types.ts + index.ts

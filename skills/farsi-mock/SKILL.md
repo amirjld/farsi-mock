@@ -1,6 +1,6 @@
 ---
 name: farsi-mock
-description: Generate realistic, algorithmically valid Iranian test data (کد ملی, Sheba, card numbers, mobiles, postal codes, Persian names, addresses, products in toman, Jalali dates) and seed databases or mock APIs with it. Use when the user needs Iranian/Persian fake data, fixtures, seed scripts, SQL inserts, or a mock REST API, or wants to infer test data from a Prisma/Zod/Mongoose/OpenAPI schema.
+description: Generate realistic, algorithmically valid Iranian test data (کد ملی, Sheba, card numbers, mobiles, postal codes, Persian names, addresses, products in toman, Jalali dates) and seed databases or mock APIs with it. Use when the user needs Iranian/Persian fake data, fixtures, seed scripts, SQL inserts, a mock REST API, a frontend "mock mode" (API_MODE=mock) that returns data in the exact shape of their OpenAPI/Swagger API, or wants to infer test data from a Prisma/Zod/Mongoose/OpenAPI schema.
 ---
 
 # farsi-mock
@@ -17,6 +17,7 @@ Synthetic Iranian test data. Every ID passes its checksum, but national IDs star
 | SQL / Mongo / TS fixtures | add `--sql --dialect postgres`, `--mongo`, or `--ts` |
 | Mock REST API | `npx farsi-mock serve farsi-mock.json --port 4000 --seed 1` |
 | Inside code | `import { createIran } from "farsi-mock"` |
+| Frontend shows nothing because the backend has no data | `npx farsi-mock frontend <openapi.json or swagger URL> -o src/mocks --explain`, then wrap fetch/axios with `createApiFetch` / `createAxiosAdapter` from `farsi-mock/frontend/client` behind `NEXT_PUBLIC_API_MODE` / `VITE_API_MODE` (see docs/FRONTEND.md) |
 | As MCP tools | `npx farsi-mock mcp` (tools: farsi_mock_generate, farsi_mock_schema, farsi_mock_infer, farsi_mock_validate, farsi_mock_paths) |
 
 ## Workflow for "seed my database"
@@ -26,6 +27,17 @@ Synthetic Iranian test data. Every ID passes its checksum, but national IDs star
 3. Fix guesses with `--override Model.field=path` (see `npx farsi-mock paths`) or edit the written JSON.
 4. Generate with a seed so results are reproducible: `npx farsi-mock schema farsi-mock.json --seed 1 -n 50 --sql --dialect postgres -o seed.sql`.
    Or in a seed script use `seedPrisma` / `seedDrizzle` / `seedMongoose` from `farsi-mock/seed`.
+
+## Workflow for "frontend mock mode"
+
+1. Find the API spec (OpenAPI/Swagger JSON file, or the backend's `/swagger/v1/swagger.json` URL). YAML: convert to JSON first.
+2. `npx farsi-mock frontend <spec> -o src/mocks --base-url <the prefix the app calls, e.g. /api> --explain`; check each route's kind
+   (list/detail/create/update/delete/other) and envelope in the printed table.
+3. Wire the switch where the app does HTTP: `createApiFetch({ mode: process.env.NEXT_PUBLIC_API_MODE, mock: () => import("@/mocks") })` (from `farsi-mock/frontend/client`)
+   for fetch/TanStack Query, `createAxiosAdapter(() => import("@/mocks"), { fallback })` for axios, or
+   `createNextRouteHandlers` in `app/api/[...path]/route.ts`. Keep the import lazy so production bundles skip the mocks.
+4. Business rules (login, cart, permissions) go in `handlers` in `src/mocks/index.ts`; `npx farsi-mock frontend` never overwrites it.
+5. Add `NEXT_PUBLIC_API_MODE=mock` (or `hybrid`) to `.env.development`.
 
 ## Schema cheat sheet (code)
 

@@ -6,6 +6,36 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- **Frontend mock mode** (`farsi-mock/frontend`, `farsi-mock/frontend/runtime`, `farsi-mock/frontend/client`): a mock backend that runs
+  inside the frontend and answers in exactly the real API's shape.
+  - `compileOpenAPI` turns an OpenAPI 3.x / Swagger 2 document into a serializable mock spec: finds list and
+    record payloads inside envelopes (`{ data, meta }`, `{ items, total, page }`, `{ isSuccess, message, result }`,
+    Spring pages, bare arrays) through `$ref`, `allOf`, `oneOf`/`anyOf`; maps pagination/status/message fields;
+    links list, detail, create, update and delete routes of one resource; reads query parameter roles (page,
+    size, offset, search, sort, filters, ranges, 0-based pages); builds error bodies from error schemas.
+  - `createMockApi` / `createMockRuntime`: deterministic data by seed, list/detail consistency (detail-only
+    fields included), foreign keys that point at existing records, nested routes filtered by parent, records
+    for unknown ids (or 404), pagination, search, sort, filters, POST/PUT/PATCH/DELETE on an in-memory store,
+    deep stripping of fields not in the spec, `persist` (localStorage/sessionStorage/custom), `id` (survives
+    HMR), `fork()`, latency and error simulation (`delay`, `errorRate`, `errors`, `?__status`, `x-mock-status`),
+    custom `handlers`, typed `api.request("GET /products/{id}")`.
+  - Adapters: `apiMode` / `isMockMode` (`NEXT_PUBLIC_API_MODE`, `VITE_API_MODE`: `api` | `mock` | `hybrid`),
+    `createApiFetch` (lazy mock import), `createMockFetch`, `installMockFetch`, `createAxiosAdapter` (no axios
+    dependency, AxiosError-shaped errors, hybrid), `createMswHandlers` (pass msw's `http`; msw is an optional
+    peer), `createNextRouteHandlers` (mount prefix, per-browser sessions), `createMockMiddleware`,
+    `combineMockApis`, `isEmptyPayload`.
+  - Hybrid mode: real backend first, mock when a GET returns an empty payload or the network fails.
+  - `defineMockSpec` for APIs without OpenAPI: resources, routes, envelope presets (`raw`, `data`, `items`,
+    `result`, `spring`) and templates (`$items`, `$total`, `$page`, ...), `crud: true`.
+  - `farsi-mock frontend <spec|url> -o src/mocks`: writes `spec.ts` (compiled spec), `types.ts` (component
+    types + an `Endpoints` map) and `index.ts` (kept when edited); `--lang js|json`, `--explain`, `--override`,
+    `--images`, `--base-url`, `--count`.
+  - `openApiToTs` (OpenAPI -> TypeScript types).
+- Generator paths `internet.image`, `internet.avatar`, `internet.thumbnail`: offline SVG placeholder images
+  (data URIs) that render without network.
+
 ## [2.0.0] - 2026-10-20
 
 ### Added
