@@ -1,0 +1,17 @@
+{
+  "context": { "province": "اصفهان" },
+  "fields": {
+    "_id": "id.objectId",
+    "full_name": { "fa": "person.fullName", "en": "person.fullNameEn" },
+    "national_id": "person.nationalId",
+    "father_name": "person.fatherName",
+    "phone_number": "contact.mobile",
+    "home_number": "contact.landline",
+    "gender": { "$template": "{person.gender}" },
+    "address": "address.formatted",
+    "role": { "$pick": ["student", "teacher"] },
+    "score": { "$int": [0, 100] },
+    "is_verified": { "$bool": 0.8 },
+    "createdAt": "date.past"
+  }
+}

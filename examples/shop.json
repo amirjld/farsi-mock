@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "users": {
+      "count": 20,
+      "fields": {
+        "id": "id.uuid",
+        "firstName": "person.firstName",
+        "lastName": "person.lastName",
+        "mobile": "contact.mobile",
+        "nationalId": "person.nationalId"
+      }
+    },
+    "products": {
+      "count": 30,
+      "fields": { "id": "id.uuid", "name": "product.name", "price": "product.price", "category": "product.category" }
+    },
+    "orders": {
+      "count": 50,
+      "fields": {
+        "id": "id.uuid",
+        "orderNumber": "commerce.orderNumber",
+        "userId": "ref:users.id",
+        "items": { "$array": [1, 3], "of": { "productId": "ref:products.id", "quantity": { "$int": [1, 3] } } },
+        "status": { "$pick": ["pending", "paid", "shipped", "delivered"] },
+        "createdAtJalali": "date.recentJalali"
+      }
+    }
+  }
+}
