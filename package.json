@@ -69,9 +69,11 @@
   "devDependencies": {
     "@types/jalaali-js": "^1.2.0",
     "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^3.2.7",
     "jalaali-js": "^2.0.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.12"
+    "vitest": "^3.2.7",
+    "zod": "^4.6.7"
   }
 }
