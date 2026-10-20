@@ -24,7 +24,14 @@
     "sql",
     "mock-server",
     "mcp",
-    "seed-data"
+    "seed-data",
+    "frontend",
+    "frontend-mock",
+    "msw",
+    "axios",
+    "nextjs",
+    "vite",
+    "api-mock"
   ],
   "author": "Amir Hossein (https://github.com/amirjld)",
   "license": "MIT",
@@ -121,6 +128,26 @@
         "default": "./dist/ai.cjs"
       }
     },
+    "./frontend": {
+      "import": {
+        "types": "./dist/frontend.d.ts",
+        "default": "./dist/frontend.js"
+      },
+      "require": {
+        "types": "./dist/frontend.d.cts",
+        "default": "./dist/frontend.cjs"
+      }
+    },
+    "./frontend/runtime": {
+      "import": {
+        "types": "./dist/frontend-runtime.d.ts",
+        "default": "./dist/frontend-runtime.js"
+      },
+      "require": {
+        "types": "./dist/frontend-runtime.d.cts",
+        "default": "./dist/frontend-runtime.cjs"
+      }
+    },
     "./browser": "./dist/farsi-mock.global.js",
     "./package.json": "./package.json"
   },
@@ -186,14 +213,24 @@
       ],
       "ai": [
         "./dist/ai.d.ts"
+      ],
+      "frontend": [
+        "./dist/frontend.d.ts"
+      ],
+      "frontend/runtime": [
+        "./dist/frontend-runtime.d.ts"
       ]
     }
   },
   "peerDependencies": {
-    "zod": ">=3.22"
+    "zod": ">=3.22",
+    "msw": ">=2"
   },
   "peerDependenciesMeta": {
     "zod": {
+      "optional": true
+    },
+    "msw": {
       "optional": true
     }
   }

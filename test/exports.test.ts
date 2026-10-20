@@ -24,10 +24,48 @@ describe.runIf(built)("package exports (needs npm run build)", () => {
     expect(Object.keys(s.data.u[0])).toEqual(["id", "n"]);
   });
   it("ESM subpaths load", async () => {
-    for (const sub of ["index", "infer", "output", "seed", "server", "validate", "jalali", "ai"]) {
+    for (const sub of ["index", "infer", "output", "seed", "server", "validate", "jalali", "ai", "frontend", "frontend-runtime"]) {
       const m = await import(join(root, "dist", `${sub}.js`));
       expect(Object.keys(m).length, sub).toBeGreaterThan(0);
     }
+  });
+  it("frontend subpaths work from CJS and ESM and share one runtime", async () => {
+    const req = createRequire(join(root, "package.json"));
+    const cjs = req(join(root, "dist", "frontend.cjs"));
+    const api = cjs.createMockApi({ resources: { Item: { fields: { id: "id.index", name: "product.name" }, count: 3 } }, crud: true });
+    const r = await api.handle({ url: "/items" });
+    expect(r.body).toHaveLength(3);
+    const esm = await import(join(root, "dist", "frontend.js"));
+    const rt = await import(join(root, "dist", "frontend-runtime.js"));
+    expect(esm.createMockRuntime).toBe(rt.createMockRuntime);
+    expect(typeof rt.createMockFetch).toBe("function");
+    expect(rt.compileOpenAPI).toBeUndefined(); // the runtime entry has no OpenAPI compiler
+  });
+  it("frontend code has no node: imports (works in browsers, edge and workers)", () => {
+    for (const f of ["frontend.js", "frontend-runtime.js"]) {
+      const seen = new Set<string>();
+      const walk = (file: string) => {
+        if (seen.has(file)) return;
+        seen.add(file);
+        const code = readFileSync(join(root, "dist", file), "utf8");
+        expect(code, file).not.toMatch(/from ?["']node:|require\(["']node:/);
+        for (const m of code.matchAll(/from ?["']\.\/([\w.-]+\.js)["']/g)) walk(m[1]);
+      };
+      walk(f);
+    }
+  });
+  it("tree-shaking: the API-mode switch costs ~1 KB; the mock code stays behind a lazy import", async () => {
+    let esbuild: typeof import("esbuild");
+    try { esbuild = await import("esbuild"); } catch { return; }
+    const bundle = async (code: string) => {
+      const r = await esbuild.build({ stdin: { contents: code, resolveDir: root, loader: "js" }, bundle: true, minify: true, format: "esm", write: false, platform: "browser", logLevel: "silent" });
+      return r.outputFiles[0].text.length;
+    };
+    const switchOnly = await bundle(`import { createApiFetch } from "./dist/frontend-runtime.js"; export const f = createApiFetch({ mode: "api", mock: () => ({}) });`);
+    expect(switchOnly).toBeLessThan(6_000);
+    const runtime = await bundle(`import { createMockRuntime } from "./dist/frontend-runtime.js"; export const r = createMockRuntime;`);
+    const full = await bundle(`import { createMockApi } from "./dist/frontend.js"; export const r = createMockApi;`);
+    expect(runtime).toBeLessThan(full);
   });
   it("browser bundle has no node: imports", () => {
     const code = readFileSync(join(root, "dist", "farsi-mock.global.js"), "utf8");

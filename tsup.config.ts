@@ -10,6 +10,8 @@ const entry = {
   validate: "src/validate.ts",
   jalali: "src/jalali.ts",
   ai: "src/ai.ts",
+  frontend: "src/frontend/index.ts",
+  "frontend-runtime": "src/frontend/runtime-entry.ts",
 };
 
 export default defineConfig([
