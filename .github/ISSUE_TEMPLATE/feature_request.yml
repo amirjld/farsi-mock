@@ -1,0 +1,16 @@
+name: Feature request
+description: A new generator, field alias, output format, or data improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you need?
+      description: For new data (names, cities, catalogs), please link a source with a licence that allows reuse.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: Field names from your schema that were not recognised, or the output you want.

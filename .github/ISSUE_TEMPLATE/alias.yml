@@ -1,0 +1,13 @@
+name: Field name not recognised
+description: infer mapped a field badly (low confidence or wrong generator)
+labels: [inference]
+body:
+  - type: textarea
+    id: fields
+    attributes:
+      label: Field names and what they should map to
+      description: Paste the relevant lines of `farsi-mock infer <file> --explain` (no real data).
+      placeholder: |
+        Customer.shomare_parvande  string  text.word  25%  -> should be a file number
+    validations:
+      required: true

@@ -43,6 +43,77 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./infer": {
+      "import": {
+        "types": "./dist/infer.d.ts",
+        "default": "./dist/infer.js"
+      },
+      "require": {
+        "types": "./dist/infer.d.cts",
+        "default": "./dist/infer.cjs"
+      }
+    },
+    "./output": {
+      "import": {
+        "types": "./dist/output.d.ts",
+        "default": "./dist/output.js"
+      },
+      "require": {
+        "types": "./dist/output.d.cts",
+        "default": "./dist/output.cjs"
+      }
+    },
+    "./seed": {
+      "import": {
+        "types": "./dist/seed.d.ts",
+        "default": "./dist/seed.js"
+      },
+      "require": {
+        "types": "./dist/seed.d.cts",
+        "default": "./dist/seed.cjs"
+      }
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.js"
+      },
+      "require": {
+        "types": "./dist/server.d.cts",
+        "default": "./dist/server.cjs"
+      }
+    },
+    "./validate": {
+      "import": {
+        "types": "./dist/validate.d.ts",
+        "default": "./dist/validate.js"
+      },
+      "require": {
+        "types": "./dist/validate.d.cts",
+        "default": "./dist/validate.cjs"
+      }
+    },
+    "./jalali": {
+      "import": {
+        "types": "./dist/jalali.d.ts",
+        "default": "./dist/jalali.js"
+      },
+      "require": {
+        "types": "./dist/jalali.d.cts",
+        "default": "./dist/jalali.cjs"
+      }
+    },
+    "./ai": {
+      "import": {
+        "types": "./dist/ai.d.ts",
+        "default": "./dist/ai.js"
+      },
+      "require": {
+        "types": "./dist/ai.d.cts",
+        "default": "./dist/ai.cjs"
+      }
+    },
+    "./browser": "./dist/farsi-mock.global.js",
     "./package.json": "./package.json"
   },
   "bin": {
@@ -53,7 +124,10 @@
     "README.md",
     "README.fa.md",
     "DATA_SOURCES.md",
-    "LICENSE"
+    "CHANGELOG.md",
+    "LICENSE",
+    "llms.txt",
+    "skills"
   ],
   "sideEffects": false,
   "engines": {
@@ -64,7 +138,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run typecheck && npm run build && npm test"
+    "prepublishOnly": "npm run typecheck && npm run build && npm test",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/jalaali-js": "^1.2.0",
@@ -77,5 +152,40 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.7",
     "zod": "^4.6.7"
+  },
+  "unpkg": "./dist/farsi-mock.global.js",
+  "jsdelivr": "./dist/farsi-mock.global.js",
+  "typesVersions": {
+    "*": {
+      "infer": [
+        "./dist/infer.d.ts"
+      ],
+      "output": [
+        "./dist/output.d.ts"
+      ],
+      "seed": [
+        "./dist/seed.d.ts"
+      ],
+      "server": [
+        "./dist/server.d.ts"
+      ],
+      "validate": [
+        "./dist/validate.d.ts"
+      ],
+      "jalali": [
+        "./dist/jalali.d.ts"
+      ],
+      "ai": [
+        "./dist/ai.d.ts"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "zod": ">=3.22"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
   }
 }

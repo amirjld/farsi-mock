@@ -1,0 +1,36 @@
+name: Bug report
+description: Something generates wrong or invalid data, or crashes
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Please **do not paste real personal data** (national IDs, phones, card numbers) from production. Use farsi-mock output or made-up values.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the code or CLI command, and the seed if you used one, so it can be reproduced.
+      placeholder: |
+        createIran({ seed: 1 }).schema({ ... }).many(10)
+        npx farsi-mock infer schema.prisma --explain
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: farsi-mock version
+      placeholder: 2.0.0
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Node / browser / OS
+      placeholder: Node 20, Windows 11
