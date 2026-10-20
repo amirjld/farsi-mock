@@ -1,0 +1,77 @@
+{
+  "name": "mock-iran",
+  "version": "0.1.0",
+  "description": "Realistic, algorithmically valid Iranian test data (like Faker, for Iran): names, کد ملی, mobile, Sheba, cards, addresses, companies, orders, Jalali dates, flexible schemas and a CLI.",
+  "keywords": [
+    "faker",
+    "mock",
+    "fake-data",
+    "test-data",
+    "seed",
+    "iran",
+    "persian",
+    "farsi",
+    "jalali",
+    "national-id",
+    "code-melli",
+    "sheba",
+    "iban",
+    "fixtures"
+  ],
+  "author": "Amir Hossein (https://github.com/amirjld)",
+  "license": "MIT",
+  "homepage": "https://github.com/amirjld/mock-iran#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amirjld/mock-iran.git"
+  },
+  "bugs": {
+    "url": "https://github.com/amirjld/mock-iran/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "mock-iran": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.fa.md",
+    "DATA_SOURCES.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run typecheck && npm run build && npm test"
+  },
+  "devDependencies": {
+    "@types/jalaali-js": "^1.2.0",
+    "@types/node": "^26.6.5",
+    "jalaali-js": "^2.0.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  }
+}
