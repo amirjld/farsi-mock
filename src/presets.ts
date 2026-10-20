@@ -45,7 +45,7 @@ export function createPresets(f: Iran) {
 
   const seller = new Schema(f, {
     id: "id.uuid",
-    shopName: (_x, c) => c.company.name.replace(/^شرکت /, "").replace(/ \(.*\)$/, ""),
+    shopName: (_x, c) => c.company.name.replace(/^(شرکت|موسسه) /, "").replace(/ \(.*\)$/, ""),
     companyName: "company.name",
     legalNationalId: "company.legalNationalId",
     economicCode: "company.economicCode",
