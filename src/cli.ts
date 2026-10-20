@@ -4,14 +4,14 @@ import { Schema, fromJson, listPaths, type SchemaDef, type ContextOptions, type 
 import { format, type Format } from "./output.js";
 
 const VERSION = "0.1.0";
-const HELP = `mock-iran ${VERSION}: realistic, valid Iranian test data
+const HELP = `farsi-mock ${VERSION}: realistic, valid Iranian test data
 
 Usage
-  mock-iran <type> [options]          type: user, seller, address, product, order (presets)
+  farsi-mock <type> [options]         type: user, seller, address, product, order (presets)
                                             person, contact, bank, company (raw generators)
-  mock-iran schema <file.json> [options]
-  mock-iran paths                      list every field path usable in schemas
-  mock-iran banks | provinces          list supported banks / provinces
+  farsi-mock schema <file.json> [options]
+  farsi-mock paths                     list every field path usable in schemas
+  farsi-mock banks | provinces         list supported banks / provinces
 
 Options
   -n, --count <n>        number of records (default 10)
@@ -30,9 +30,9 @@ Options
   -h, --help | -v, --version
 
 Examples
-  npx mock-iran person -n 50 --csv
-  npx mock-iran user -n 100 --seed 42 --province اصفهان --case snake
-  npx mock-iran schema ./schema.json -n 100 --format csv -o users.csv
+  npx farsi-mock person -n 50 --csv
+  npx farsi-mock user -n 100 --seed 42 --province اصفهان --case snake
+  npx farsi-mock schema ./schema.json -n 100 --format csv -o users.csv
 `;
 
 interface Args { _: string[]; [k: string]: string | boolean | string[] }
@@ -51,7 +51,7 @@ function parse(argv: string[]): Args {
   }
   return a;
 }
-function fail(msg: string): never { process.stderr.write(`mock-iran: ${msg}\nRun mock-iran --help for usage.\n`); process.exit(1); }
+function fail(msg: string): never { process.stderr.write(`farsi-mock: ${msg}\nRun farsi-mock --help for usage.\n`); process.exit(1); }
 
 function main(argv: string[]) {
   const a = parse(argv);
@@ -77,7 +77,7 @@ function main(argv: string[]) {
 
   let result: Record<string, unknown>[] | Record<string, Record<string, unknown>[]>;
   if (cmd === "schema") {
-    const file = a._[1] ?? fail("schema needs a file: mock-iran schema ./schema.json");
+    const file = a._[1] ?? fail("schema needs a file: farsi-mock schema ./schema.json");
     let json: Record<string, unknown>;
     try { json = JSON.parse(readFileSync(file, "utf8").replace(/^\uFEFF/, "")); } catch (e) { fail(`cannot read ${file}: ${(e as Error).message}`); }
     if (json.entities && typeof json.entities === "object") {

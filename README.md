@@ -1,4 +1,4 @@
-# mock-iran
+# farsi-mock
 
 Realistic, **algorithmically valid** Iranian test data. Like Faker, but the national IDs pass the
 checksum, cards pass Luhn, Sheba numbers pass mod-97 and point at the same bank as the card, mobile
@@ -19,13 +19,13 @@ agrees with the others (same person, same province).
 ## Install
 
 ```bash
-npm i -D mock-iran
+npm i -D farsi-mock
 ```
 
 ## Quick start
 
 ```ts
-import { iran } from "mock-iran";
+import { iran } from "farsi-mock";
 
 iran.setReferenceDate("2026-10-20T00:00:00Z");
 iran.seed(42);                         // same output every run
@@ -76,7 +76,7 @@ Apps name things differently (`nationalCode`, `codeMelli`, `national_id`, `nid`.
 and map each field to a path or a function:
 
 ```ts
-import { iran, literal } from "mock-iran";
+import { iran, literal } from "farsi-mock";
 
 const User = iran.schema({
   _id: "id.objectId",
@@ -114,7 +114,7 @@ Field values can be:
 
 | Value | Meaning |
 | --- | --- |
-| `"person.fullName"` | a path. Run `npx mock-iran paths` for all of them |
+| `"person.fullName"` | a path. Run `npx farsi-mock paths` for all of them |
 | `"person"` | the whole entity object |
 | `(f, ctx) => ...` | a function. `f` is the generator, `ctx` has `person`, `contact`, `address`, `bank`, `company`, `product`, `order`, `province`, `city`, `gender`, `index` and `record` (fields generated so far) |
 | `{ ... }` | a nested object |
@@ -160,7 +160,7 @@ so `rename`, `extend` and `withCase` work on them.
 ## Output
 
 ```ts
-import { toCsv, toJson, toJsonl } from "mock-iran";
+import { toCsv, toJson, toJsonl } from "farsi-mock";
 toCsv(User.many(10));             // RFC 4180, nested keys become "address.city", arrays become JSON
 toCsv(rows, { bom: true });       // add a BOM so Excel opens Persian text correctly
 ```
@@ -170,11 +170,11 @@ Excel may strip leading zeros from mobiles and IDs; import those columns as text
 ## CLI
 
 ```bash
-npx mock-iran person -n 50 --csv
-npx mock-iran user -n 100 --seed 42 --province اصفهان --case snake
-npx mock-iran schema ./schema.json -n 100 --format csv -o users.csv
-npx mock-iran schema ./shop.json --seed 1          # multi-entity file with refs
-npx mock-iran paths | banks | provinces
+npx farsi-mock person -n 50 --csv
+npx farsi-mock user -n 100 --seed 42 --province اصفهان --case snake
+npx farsi-mock schema ./schema.json -n 100 --format csv -o users.csv
+npx farsi-mock schema ./shop.json --seed 1          # multi-entity file with refs
+npx farsi-mock paths | banks | provinces
 ```
 
 Types: `user`, `seller`, `address`, `product`, `order` (presets) and `person`, `contact`, `bank`,

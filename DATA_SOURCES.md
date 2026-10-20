@@ -1,6 +1,6 @@
 # Data sources
 
-mock-iran ships small, hand-checked data tables. Nothing in this package was copied
+farsi-mock ships small, hand-checked data tables. Nothing in this package was copied
 from a real database, a real customer list or any private project.
 
 | Data | Source | Licence / status |

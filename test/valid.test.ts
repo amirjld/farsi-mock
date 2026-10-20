@@ -6,7 +6,7 @@ import { mobileOperator, landlineProvince, validatePostalCode } from "./parsi/ph
 import { validateLegalId } from "./parsi/legal.js";
 import { PROVINCES } from "../src/data/places.js";
 
-// Every value is checked with parsi-mcp's validators (copied in test/parsi), not with mock-iran's own code.
+// Every value is checked with parsi-mcp's validators (copied in test/parsi), not with farsi-mock's own code.
 const N = 2000;
 const f = createIran({ seed: 1234, referenceDate: "2026-10-20T00:00:00Z" });
 

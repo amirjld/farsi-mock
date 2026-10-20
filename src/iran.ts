@@ -61,7 +61,7 @@ export class Iran {
   /** Fix "now" for date generators (makes dates deterministic too). */
   setReferenceDate(date: Date | string | undefined): this {
     this.refDate = date === undefined ? undefined : new Date(date);
-    if (this.refDate && isNaN(this.refDate.getTime())) throw new Error("mock-iran: invalid reference date");
+    if (this.refDate && isNaN(this.refDate.getTime())) throw new Error("farsi-mock: invalid reference date");
     return this;
   }
   now(): Date { return this.refDate ? new Date(this.refDate) : new Date(); }
@@ -96,7 +96,7 @@ export class Iran {
   findProvince(input: ProvinceInput): ProvinceData {
     const q = normalize(input);
     const p = PROVINCES.find((x) => [x.fa, x.en, x.iso, x.iso.slice(3)].some((v) => normalize(v) === q));
-    if (!p) throw new Error(`mock-iran: unknown province "${input}". Use a Persian/English name or ISO code like IR-10.`);
+    if (!p) throw new Error(`farsi-mock: unknown province "${input}". Use a Persian/English name or ISO code like IR-10.`);
     return p;
   }
   /** @internal */ provinceData(input?: ProvinceInput): ProvinceData {
@@ -241,7 +241,7 @@ export class Iran {
     if (!input) return this.rng.pick(BANKS);
     const q = normalize(input);
     const b = BANKS.find((x) => [x.id, x.fa, x.en, x.fa.replace(/^بانک /, ""), x.shebaCode, ...x.bins].some((v) => normalize(v) === q));
-    if (!b) throw new Error(`mock-iran: unknown bank "${input}". Try one of: ${BANKS.map((x) => x.id).join(", ")}`);
+    if (!b) throw new Error(`farsi-mock: unknown bank "${input}". Try one of: ${BANKS.map((x) => x.id).join(", ")}`);
     return b;
   }
   cardNumber(opts: { bank?: string; dashed?: boolean } = {}): string {
@@ -313,7 +313,7 @@ export class Iran {
     if (!input) return this.rng.pick(CATEGORIES);
     const q = normalize(input);
     const c = CATEGORIES.find((x) => [x.id, x.fa, x.en].some((v) => normalize(v) === q));
-    if (!c) throw new Error(`mock-iran: unknown category "${input}". Try: ${CATEGORIES.map((x) => x.id).join(", ")}`);
+    if (!c) throw new Error(`farsi-mock: unknown category "${input}". Try: ${CATEGORIES.map((x) => x.id).join(", ")}`);
     return c;
   }
   productName(opts: { category?: string } = {}): string {
@@ -410,7 +410,7 @@ function canonicalOperator(op: string): Operator {
   if (o === "mci" || o === "hamrah" || o === "hamrah-e-aval" || o === "همراه اول") return "MCI";
   if (o === "irancell" || o === "mtn" || o === "ایرانسل") return "Irancell";
   if (o === "rightel" || o === "رایتل") return "Rightel";
-  throw new Error(`mock-iran: unknown operator "${op}" (MCI, Irancell, Rightel)`);
+  throw new Error(`farsi-mock: unknown operator "${op}" (MCI, Irancell, Rightel)`);
 }
 
 function formatMobile(n: string, f: "local" | "international" | "e164" | "short" = "local"): string {

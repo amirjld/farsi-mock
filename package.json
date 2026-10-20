@@ -1,5 +1,5 @@
 {
-  "name": "mock-iran",
+  "name": "farsi-mock",
   "version": "0.1.0",
   "description": "Realistic, algorithmically valid Iranian test data (like Faker, for Iran): names, کد ملی, mobile, Sheba, cards, addresses, companies, orders, Jalali dates, flexible schemas and a CLI.",
   "keywords": [
@@ -20,13 +20,13 @@
   ],
   "author": "Amir Hossein (https://github.com/amirjld)",
   "license": "MIT",
-  "homepage": "https://github.com/amirjld/mock-iran#readme",
+  "homepage": "https://github.com/amirjld/farsi-mock#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amirjld/mock-iran.git"
+    "url": "git+https://github.com/amirjld/farsi-mock.git"
   },
   "bugs": {
-    "url": "https://github.com/amirjld/mock-iran/issues"
+    "url": "https://github.com/amirjld/farsi-mock/issues"
   },
   "type": "module",
   "main": "./dist/index.cjs",
@@ -46,7 +46,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "mock-iran": "dist/cli.js"
+    "farsi-mock": "dist/cli.js"
   },
   "files": [
     "dist",

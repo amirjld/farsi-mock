@@ -10,7 +10,7 @@ const run = (...args: string[]) => execFileSync(process.execPath, [cli, ...args]
 
 describe.runIf(existsSync(cli))("cli (needs npm run build)", () => {
   let dir = "";
-  beforeAll(() => { dir = mkdtempSync(join(tmpdir(), "mock-iran-")); });
+  beforeAll(() => { dir = mkdtempSync(join(tmpdir(), "farsi-mock-")); });
 
   it("person --csv", () => {
     const out = run("person", "-n", "5", "--csv", "--seed", "1");

@@ -42,7 +42,7 @@ export class Rng {
   bool(probability = 0.5): boolean { return this.next() < probability; }
 
   pick<T>(list: readonly T[]): T {
-    if (!list.length) throw new Error("mock-iran: cannot pick from an empty list");
+    if (!list.length) throw new Error("farsi-mock: cannot pick from an empty list");
     return list[Math.floor(this.next() * list.length)];
   }
 

@@ -1,6 +1,6 @@
 <div dir="rtl">
 
-# mock-iran
+# farsi-mock
 
 یه چیزی مثل Faker، ولی برای ایران 🇮🇷 دیتای تستی واقعی‌نما می‌سازه که **از اعتبارسنجی رد می‌شه**:
 کد ملی با رقم کنترل درست، کارت با Luhn درست، شبای معتبر (mod-97) که با بانک همون کارت جوره،
@@ -21,7 +21,7 @@
 </div>
 
 ```bash
-npm i -D mock-iran
+npm i -D farsi-mock
 ```
 
 <div dir="rtl">
@@ -31,7 +31,7 @@ npm i -D mock-iran
 </div>
 
 ```ts
-import { iran } from "mock-iran";
+import { iran } from "farsi-mock";
 
 iran.seed(42);
 iran.person({ gender: "female", province: "اصفهان" });
@@ -54,7 +54,7 @@ iran.many(() => iran.person(), 100);
 </div>
 
 ```ts
-import { iran, literal } from "mock-iran";
+import { iran, literal } from "farsi-mock";
 
 const User = iran.schema({
   _id: "id.objectId",
@@ -74,7 +74,7 @@ User.many(50);
 
 - هر رکورد یه context مشترک داره، پس `person.*`، `contact.*`، `address.*`، `bank.*` و `company.*` توی یه رکورد همه مال یه نفر و یه استانن.
 - با `context` می‌تونی استان، شهر، جنسیت، اپراتور، بانک، دسته‌ی محصول و بازه‌ی سنی رو ثابت کنی.
-- رشته‌ی ساده یعنی path. برای متن ثابت از `literal("...")` استفاده کن. لیست همه‌ی pathها: `npx mock-iran paths`
+- رشته‌ی ساده یعنی path. برای متن ثابت از `literal("...")` استفاده کن. لیست همه‌ی pathها: `npx farsi-mock paths`
 - اگه path رو اشتباه بنویسی، همون اول خطا می‌ده و پیشنهاد درستش رو می‌گه.
 - برای ارجاع بین جدول‌ها: `iran.ref(Users)` یا توی `iran.dataset` بنویس `"ref:users.id"`.
 - presetهای آماده: `iran.presets.user`، `seller`، `address`، `product`، `order`. با `rename`، `omit`، `extend` و `withCase("snake")` هم می‌شه شکلشون رو عوض کرد.
@@ -84,9 +84,9 @@ User.many(50);
 </div>
 
 ```bash
-npx mock-iran person -n 50 --csv
-npx mock-iran user -n 100 --seed 42 --province اصفهان --case snake
-npx mock-iran schema ./schema.json -n 100 --format csv -o users.csv
+npx farsi-mock person -n 50 --csv
+npx farsi-mock user -n 100 --seed 42 --province اصفهان --case snake
+npx farsi-mock schema ./schema.json -n 100 --format csv -o users.csv
 ```
 
 <div dir="rtl">

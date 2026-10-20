@@ -150,7 +150,7 @@ function compilePath(f: Iran, path: string): Resolver {
 function unknownPath(f: Iran, path: string): Error {
   const all = Object.values(listPaths(f)).flat();
   const near = all.map((p) => [p, distance(p.toLowerCase(), path.toLowerCase())] as const).sort((a, b) => a[1] - b[1]).slice(0, 5).map((x) => x[0]);
-  return new Error(`mock-iran: unknown path "${path}". Did you mean: ${near.join(", ")}? Use literal("...") for a fixed string.`);
+  return new Error(`farsi-mock: unknown path "${path}". Did you mean: ${near.join(", ")}? Use literal("...") for a fixed string.`);
 }
 
 function distance(a: string, b: string): number {
@@ -190,7 +190,7 @@ function compile(f: Iran, gen: Gen): Resolver {
       return o;
     };
   }
-  throw new Error(`mock-iran: unsupported generator ${String(gen)}`);
+  throw new Error(`farsi-mock: unsupported generator ${String(gen)}`);
 }
 
 /** Values returned by user functions may themselves be markers/paths-as-markers; Dates become ISO strings. */
@@ -248,12 +248,12 @@ export function makeRef(source: RefSource, field: string | undefined = "id"): Ge
     let records: Record<string, unknown>[];
     if (typeof source === "string") {
       records = ctx.refs[source];
-      if (!records) throw new Error(`mock-iran: ref to "${source}" but no such entity was generated earlier in this dataset`);
+      if (!records) throw new Error(`farsi-mock: ref to "${source}" but no such entity was generated earlier in this dataset`);
     } else if (source instanceof Schema) {
       records = source.last;
-      if (!records.length) throw new Error("mock-iran: ref to a schema that has not generated any records yet; call .many() on it first");
+      if (!records.length) throw new Error("farsi-mock: ref to a schema that has not generated any records yet; call .many() on it first");
     } else records = source;
-    if (!records.length) throw new Error("mock-iran: ref source is empty");
+    if (!records.length) throw new Error("farsi-mock: ref source is empty");
     const r = f.pick(records);
     return field ? getPath(r, field) : clone(r);
   };
@@ -316,7 +316,7 @@ export function fromJson(f: Iran, json: unknown): Gen {
   }
   if ("$gen" in o) {
     const name = String(o.$gen);
-    if (!GEN_ALLOW.includes(name)) throw new Error(`mock-iran: $gen "${name}" is not allowed. Allowed: ${GEN_ALLOW.join(", ")}`);
+    if (!GEN_ALLOW.includes(name)) throw new Error(`farsi-mock: $gen "${name}" is not allowed. Allowed: ${GEN_ALLOW.join(", ")}`);
     const args = o.args;
     return (x) => (x as unknown as Record<string, (a?: unknown) => unknown>)[name](args);
   }
