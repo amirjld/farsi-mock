@@ -6,12 +6,12 @@ const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.i
 // ---------------------------------------------------------------- JSON Schema / OpenAPI
 const STR_FORMAT_TYPE: Record<string, FieldType> = { "date-time": "datetime", date: "date" };
 
-function resolveRef(root: Obj, ref: string): Obj | undefined {
+export function resolveRef(root: Obj, ref: string): Obj | undefined {
   if (!ref.startsWith("#/")) return undefined;
   return ref.slice(2).split("/").reduce<any>((o, k) => (o == null ? undefined : o[k.replace(/~1/g, "/").replace(/~0/g, "~")]), root);
 }
 
-function jsonField(name: string, node: Obj, root: Obj, depth: number, seen: Set<string>): FieldSpec {
+export function jsonField(name: string, node: Obj, root: Obj, depth: number, seen: Set<string>): FieldSpec {
   if (!isObj(node)) return { name, type: "unknown" };
   if (typeof node.$ref === "string") {
     if (seen.has(node.$ref) || depth > 6) return { name, type: "object", fields: [] };
