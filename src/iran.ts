@@ -41,7 +41,12 @@ export interface Order {
   tax: number; total: number; currency: "IRT"; paymentMethod: string; shippingMethod: string; createdAt: string; createdAtJalali: string;
 }
 
-export interface IranOptions { seed?: number | string; referenceDate?: Date | string }
+export interface IranOptions {
+  seed?: number | string;
+  referenceDate?: Date | string;
+  /** National IDs use real issuing-office prefixes of the birth city instead of the safe, never-issued "000" prefix. Default false. */
+  realisticIds?: boolean;
+}
 
 const DAY = 86_400_000;
 const normalize = (s: string) => s.trim().toLowerCase().replace(/ي/g, "ی").replace(/ك/g, "ک").replace(/[\s\u200c-]+/g, "");
@@ -49,9 +54,12 @@ const normalize = (s: string) => s.trim().toLowerCase().replace(/ي/g, "ی").rep
 export class Iran {
   readonly rng: Rng;
   private refDate?: Date;
+  /** Default for nationalId({ realistic }). */
+  realisticIds: boolean;
 
   constructor(opts: IranOptions = {}) {
     this.rng = new Rng(opts.seed);
+    this.realisticIds = opts.realisticIds ?? false;
     if (opts.referenceDate) this.setReferenceDate(opts.referenceDate);
   }
 
@@ -124,13 +132,14 @@ export class Iran {
   lastName(opts: { en?: boolean } = {}): string { const n = this.rng.pick(LAST_NAMES); return opts.en ? n[1] : n[0]; }
 
   /**
-   * Valid national ID (کد ملی). The 3-digit prefix is a real issuing-office code of the
-   * given province/city, so it looks right; pass `unissued: true` to use the "000" prefix,
-   * which no registry office issues, if you need IDs that can never belong to a real person.
+   * Valid national ID (کد ملی). Safe by default: the 3-digit prefix is "000", which is in no
+   * published issuing-office table, so the ID cannot belong to a real person. With
+   * `realistic: true` (or `createIran({ realisticIds: true })`) the prefix is a real issuing-office
+   * code of the given province/city instead. Some systems reject the 000 prefix.
    */
-  nationalId(opts: { province?: ProvinceInput; city?: string; unissued?: boolean } = {}): string {
+  nationalId(opts: { province?: ProvinceInput; city?: string; realistic?: boolean } = {}): string {
     let prefix: string;
-    if (opts.unissued) prefix = "000";
+    if (!(opts.realistic ?? this.realisticIds)) prefix = "000";
     else {
       const p = this.provinceData(opts.province);
       const c = this.cityData(p, opts.city);
@@ -153,7 +162,7 @@ export class Iran {
     return { date, gregorian: formatGregorian(date), jalali: jalaliOf(date).formatted, age };
   }
 
-  person(opts: { gender?: Gender; province?: ProvinceInput; city?: string; minAge?: number; maxAge?: number; unissuedNationalId?: boolean } = {}): Person {
+  person(opts: { gender?: Gender; province?: ProvinceInput; city?: string; minAge?: number; maxAge?: number; realisticIds?: boolean } = {}): Person {
     const gender = opts.gender ?? this.gender();
     const p = this.provinceData(opts.province);
     const c = this.cityData(p, opts.city);
@@ -169,7 +178,7 @@ export class Iran {
       gender, firstName: first[0], lastName: last[0], fullName: `${first[0]} ${last[0]}`,
       firstNameEn: first[1], lastNameEn: last[1], fullNameEn: `${first[1]} ${last[1]}`,
       fatherName: father[0], birthDate: b.gregorian, birthDateJalali: b.jalali, age: b.age,
-      nationalId: this.nationalId({ province: p.iso, city: c.fa, unissued: opts.unissuedNationalId }),
+      nationalId: this.nationalId({ province: p.iso, city: c.fa, realistic: opts.realisticIds }),
       birthProvince: p.fa, birthCity: c.fa,
     };
   }

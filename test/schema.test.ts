@@ -57,7 +57,9 @@ describe("schema consistency", () => {
   });
   it("context option pins province and gender", () => {
     const rs = User.many(100, { province: "اصفهان", gender: "female" });
-    for (const r of rs) { expect(r.province).toBe("اصفهان"); expect(r.sex).toBe("female"); expect((r.tel as string).startsWith("031")).toBe(true); }
+    for (const r of rs) { expect(r.province).toBe("اصفهان"); expect(r.sex).toBe("female"); expect((r.tel as string).startsWith("031")).toBe(true); expect((r.nid as string).startsWith("000")).toBe(true); }
+    for (const r of User.many(100, { province: "Tehran", city: "تهران", realisticIds: true })) expect((r.nid as string).slice(0, 2)).toBe("00");
+    for (const r of User.many(50, { province: "Fars", city: "شیراز", realisticIds: true })) expect(["228", "229", "230"]).toContain((r.nid as string).slice(0, 3));
   });
   it("arrays: fresh item entities, same person", () => {
     const S = f.schema({

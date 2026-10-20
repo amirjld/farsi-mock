@@ -11,7 +11,7 @@ export type KeyCase = "preserve" | "camel" | "snake" | "pascal" | "kebab";
 
 export interface ContextOptions {
   province?: string; city?: string; gender?: Gender; operator?: Operator | Lowercase<Operator>; bank?: string;
-  category?: string; minAge?: number; maxAge?: number; unissuedNationalId?: boolean; emailDomains?: string[];
+  category?: string; minAge?: number; maxAge?: number; realisticIds?: boolean; emailDomains?: string[];
 }
 export interface SchemaOptions { context?: ContextOptions; case?: KeyCase }
 
@@ -54,7 +54,7 @@ export class RecordContext {
   private get where() { return { province: this.province.iso, city: this.city.fa }; }
 
   get person(): Person {
-    return this.once("person", () => this.f.person({ ...this.where, gender: this.gender, minAge: this.options.minAge, maxAge: this.options.maxAge, unissuedNationalId: this.options.unissuedNationalId }), true);
+    return this.once("person", () => this.f.person({ ...this.where, gender: this.gender, minAge: this.options.minAge, maxAge: this.options.maxAge, realisticIds: this.options.realisticIds }), true);
   }
   get address(): Address { return this.once("address", () => this.f.address(this.where)); }
   get contact(): Contact {

@@ -9,12 +9,17 @@ import { PROVINCES } from "../src/data/places.js";
 // Every value is checked with parsi-mcp's validators (copied in test/parsi), not with farsi-mock's own code.
 const N = 2000;
 const f = createIran({ seed: 1234, referenceDate: "2026-10-20T00:00:00Z" });
+const real = createIran({ seed: 1234, referenceDate: "2026-10-20T00:00:00Z", realisticIds: true });
 
 describe("person", () => {
   const people = f.many(() => f.person(), N);
-  it("national IDs are valid", () => { for (const p of people) expect(validateNationalId(p.nationalId), p.nationalId).toBe(true); });
-  it("national ID prefix belongs to the birth city/province", () => {
-    for (const p of people) {
+  const realPeople = real.many(() => real.person(), N);
+  it("national IDs are valid and safe (000 prefix) by default", () => {
+    for (const p of people) { expect(validateNationalId(p.nationalId), p.nationalId).toBe(true); expect(p.nationalId.startsWith("000")).toBe(true); }
+  });
+  it("realisticIds: valid, and the prefix belongs to the birth city/province", () => {
+    for (const p of realPeople) {
+      expect(validateNationalId(p.nationalId), p.nationalId).toBe(true);
       const prov = PROVINCES.find((x) => x.fa === p.birthProvince)!;
       const city = prov.cities.find((c) => c.fa === p.birthCity)!;
       const allowed = city.nidPrefixes.length ? city.nidPrefixes : prov.cities[0].nidPrefixes;
@@ -38,8 +43,15 @@ describe("person", () => {
       expect(p.age).toBeLessThanOrEqual(70);
     }
   });
-  it("unissued IDs use the 000 prefix and are still valid", () => {
-    for (let i = 0; i < 200; i++) { const id = f.nationalId({ unissued: true }); expect(id.startsWith("000")).toBe(true); expect(validateNationalId(id)).toBe(true); }
+  it("per-call realistic option overrides the instance default", () => {
+    for (let i = 0; i < 200; i++) {
+      const r = f.nationalId({ realistic: true, province: "Isfahan", city: "اصفهان" });
+      expect(["127", "128", "129"]).toContain(r.slice(0, 3));
+      expect(validateNationalId(r)).toBe(true);
+      const s = real.nationalId({ realistic: false });
+      expect(s.startsWith("000")).toBe(true);
+      expect(validateNationalId(s)).toBe(true);
+    }
   });
   it("province option is respected", () => {
     for (let i = 0; i < 100; i++) expect(f.person({ province: "Isfahan" }).birthProvince).toBe("اصفهان");

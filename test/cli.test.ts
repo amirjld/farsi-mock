@@ -22,7 +22,9 @@ describe.runIf(existsSync(cli))("cli (needs npm run build)", () => {
   it("user json with province, snake case", () => {
     const rows = JSON.parse(run("user", "-n", "20", "--seed", "9", "--province", "اصفهان", "--case", "snake"));
     expect(rows).toHaveLength(20);
-    for (const r of rows) { expect(r.province).toBe("اصفهان"); expect(validateNationalId(r.national_id)).toBe(true); }
+    for (const r of rows) { expect(r.province).toBe("اصفهان"); expect(validateNationalId(r.national_id)).toBe(true); expect(r.national_id.startsWith("000")).toBe(true); }
+    const realRows = JSON.parse(run("user", "-n", "20", "--seed", "9", "--province", "Fars", "--realistic-ids"));
+    for (const r of realRows) { expect(validateNationalId(r.nationalId)).toBe(true); expect(r.nationalId.startsWith("000")).toBe(false); }
   });
   it("schema file, single and multi-entity", () => {
     const single = join(dir, "s.json");

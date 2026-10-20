@@ -23,7 +23,7 @@ Options
       --operator <op>    MCI | Irancell | Rightel
       --case <case>      preserve | camel | snake | pascal | kebab
       --ref-date <iso>   fixed "now" for dates
-      --unissued-ids     national IDs use the never-issued 000 prefix
+      --realistic-ids    national IDs use real city prefixes (default: safe 000 prefix)
   -o, --out <file>       write to a file instead of stdout
       --bom              prefix CSV with a UTF-8 BOM (for Excel)
       --compact          single-line JSON
@@ -39,7 +39,7 @@ interface Args { _: string[]; [k: string]: string | boolean | string[] }
 function parse(argv: string[]): Args {
   const a: Args = { _: [] };
   const alias: Record<string, string> = { n: "count", f: "format", s: "seed", p: "province", o: "out", h: "help", v: "version" };
-  const flags = new Set(["csv", "jsonl", "json", "bom", "compact", "help", "version", "unissued-ids"]);
+  const flags = new Set(["csv", "jsonl", "json", "bom", "compact", "help", "version", "realistic-ids"]);
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     if (t.startsWith("-") && t !== "-") {
@@ -59,7 +59,7 @@ function main(argv: string[]) {
   const cmd = a._[0];
   if (a.help || !cmd) return out(HELP);
   const seed = a.seed as string | undefined;
-  const f = new Iran({ seed: seed === undefined ? undefined : /^\d+$/.test(seed) ? Number(seed) : seed, referenceDate: a["ref-date"] as string | undefined });
+  const f = new Iran({ seed: seed === undefined ? undefined : /^\d+$/.test(seed) ? Number(seed) : seed, referenceDate: a["ref-date"] as string | undefined, realisticIds: Boolean(a["realistic-ids"]) });
   if (cmd === "paths") return out(Object.entries(listPaths(f)).map(([g, p]) => `${g}:\n  ${p.join("\n  ")}`).join("\n") + "\n");
   if (cmd === "banks") return out(f.banks().map((b) => `${b.id}\t${b.name}\t${b.nameEn}`).join("\n") + "\n");
   if (cmd === "provinces") return out(f.provinces().map((p) => `${p.iso}\t${p.name}\t${p.nameEn}\t${p.areaCode}`).join("\n") + "\n");
@@ -70,7 +70,7 @@ function main(argv: string[]) {
   if (!["json", "csv", "jsonl"].includes(fmt)) fail(`unknown format "${fmt}"`);
   const ctx: ContextOptions = {
     province: a.province as string | undefined, gender: a.gender as ContextOptions["gender"], operator: a.operator as ContextOptions["operator"],
-    unissuedNationalId: Boolean(a["unissued-ids"]) || undefined,
+    realisticIds: Boolean(a["realistic-ids"]) || undefined,
   };
   if (ctx.gender && ctx.gender !== "male" && ctx.gender !== "female") fail("--gender must be male or female");
   const keyCase = (a.case as KeyCase) ?? "preserve";
@@ -94,7 +94,7 @@ function main(argv: string[]) {
   } else {
     const presets = f.presets as Record<string, Schema>;
     const raw: Record<string, () => object> = {
-      person: () => f.person({ province: ctx.province, gender: ctx.gender, unissuedNationalId: ctx.unissuedNationalId }),
+      person: () => f.person({ province: ctx.province, gender: ctx.gender, realisticIds: ctx.realisticIds }),
       contact: () => f.contact({ province: ctx.province, operator: ctx.operator }),
       bank: () => f.bank(),
       company: () => f.company({ province: ctx.province }),
