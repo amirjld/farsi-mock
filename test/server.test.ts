@@ -100,7 +100,7 @@ describe("writable server, basePath, middleware", () => {
     try {
       expect(await (await fetch(`http://127.0.0.1:${port}/other`)).text()).toBe("app");
       expect(((await (await fetch(`http://127.0.0.1:${port}/mock/users?limit=2`)).json()) as { data: unknown[] }).data).toHaveLength(2);
-    } finally { await new Promise((r) => srv.close(r)); }
+    } finally { await new Promise((r) => { srv.close(r); srv.closeAllConnections?.(); }); }
   });
   it("needs data or resources", () => {
     expect(() => createMockServer({})).toThrow(/data/);

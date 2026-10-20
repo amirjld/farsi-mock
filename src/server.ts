@@ -193,6 +193,10 @@ export function createMockServer(opts: MockServerOptions): MockServer {
         resolve(`http://${host.includes(":") ? `[${host}]` : host}:${p}${base}`);
       });
     }),
-    close: () => new Promise((resolve, reject) => server.close((e) => (e ? reject(e) : resolve()))),
+    close: () => new Promise((resolve, reject) => {
+      server.close((e) => (e ? reject(e) : resolve()));
+      // Node 18 keeps idle keep-alive sockets open, which would delay close()
+      server.closeAllConnections?.();
+    }),
   };
 }
