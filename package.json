@@ -1,7 +1,7 @@
 {
   "name": "farsi-mock",
-  "version": "0.1.0",
-  "description": "Realistic, algorithmically valid Iranian test data (like Faker, for Iran): names, کد ملی, mobile, Sheba, cards, addresses, companies, orders, Jalali dates, flexible schemas and a CLI.",
+  "version": "2.0.0",
+  "description": "Realistic, algorithmically valid Iranian test data (Faker for Iran): کد ملی, Sheba, cards, mobiles, addresses, toman prices, Jalali dates. Schema inference from Prisma/Zod/Mongoose/OpenAPI, SQL/Mongo/TS output, seed helpers, mock API and MCP server.",
   "keywords": [
     "faker",
     "mock",
@@ -16,7 +16,15 @@
     "code-melli",
     "sheba",
     "iban",
-    "fixtures"
+    "fixtures",
+    "prisma",
+    "zod",
+    "mongoose",
+    "openapi",
+    "sql",
+    "mock-server",
+    "mcp",
+    "seed-data"
   ],
   "author": "Amir Hossein (https://github.com/amirjld)",
   "license": "MIT",
@@ -126,6 +134,7 @@
     "DATA_SOURCES.md",
     "CHANGELOG.md",
     "LICENSE",
+    "docs",
     "llms.txt",
     "skills"
   ],
