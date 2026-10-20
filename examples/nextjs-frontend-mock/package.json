@@ -1,0 +1,20 @@
+{
+  "name": "farsi-mock-example-nextjs-frontend-mock",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:mock": "NEXT_PUBLIC_API_MODE=mock next dev",
+    "build": "next build",
+    "mocks": "farsi-mock frontend openapi.json -o src/mocks"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "farsi-mock": "^2.0.0",
+    "typescript": "^5.0.0"
+  }
+}
