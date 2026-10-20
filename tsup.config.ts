@@ -12,6 +12,7 @@ const entry = {
   ai: "src/ai.ts",
   frontend: "src/frontend/index.ts",
   "frontend-runtime": "src/frontend/runtime-entry.ts",
+  "frontend-client": "src/frontend/client.ts",
 };
 
 export default defineConfig([

@@ -15,7 +15,8 @@ export interface MockContext {
   /** Path params, e.g. { id: "12" }. */
   params: Record<string, string>;
   query: URLSearchParams;
-  body: unknown;
+  /** Parsed request body (JSON, form fields) or undefined. */
+  body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   method: string;
   url: URL;
   /** Request headers (lower-case names), e.g. ctx.headers.authorization. */

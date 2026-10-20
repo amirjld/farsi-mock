@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 
@@ -24,7 +25,7 @@ describe.runIf(built)("package exports (needs npm run build)", () => {
     expect(Object.keys(s.data.u[0])).toEqual(["id", "n"]);
   });
   it("ESM subpaths load", async () => {
-    for (const sub of ["index", "infer", "output", "seed", "server", "validate", "jalali", "ai", "frontend", "frontend-runtime"]) {
+    for (const sub of ["index", "infer", "output", "seed", "server", "validate", "jalali", "ai", "frontend", "frontend-runtime", "frontend-client"]) {
       const m = await import(join(root, "dist", `${sub}.js`));
       expect(Object.keys(m).length, sub).toBeGreaterThan(0);
     }
@@ -40,9 +41,12 @@ describe.runIf(built)("package exports (needs npm run build)", () => {
     expect(esm.createMockRuntime).toBe(rt.createMockRuntime);
     expect(typeof rt.createMockFetch).toBe("function");
     expect(rt.compileOpenAPI).toBeUndefined(); // the runtime entry has no OpenAPI compiler
+    const client = await import(join(root, "dist", "frontend-client.js"));
+    expect(client.createApiFetch).toBe(rt.createApiFetch);
+    expect(client.createMockRuntime).toBeUndefined();
   });
   it("frontend code has no node: imports (works in browsers, edge and workers)", () => {
-    for (const f of ["frontend.js", "frontend-runtime.js"]) {
+    for (const f of ["frontend.js", "frontend-runtime.js", "frontend-client.js"]) {
       const seen = new Set<string>();
       const walk = (file: string) => {
         if (seen.has(file)) return;
@@ -66,6 +70,18 @@ describe.runIf(built)("package exports (needs npm run build)", () => {
     const runtime = await bundle(`import { createMockRuntime } from "./dist/frontend-runtime.js"; export const r = createMockRuntime;`);
     const full = await bundle(`import { createMockApi } from "./dist/frontend.js"; export const r = createMockApi;`);
     expect(runtime).toBeLessThan(full);
+  });
+  it("code splitting: with frontend/client the runtime lands in the lazy mocks chunk, not the main chunk", async () => {
+    let esbuild: typeof import("esbuild");
+    try { esbuild = await import("esbuild"); } catch { return; }
+    const dir = mkdtempSync(join(tmpdir(), "fm-split-"));
+    writeFileSync(join(dir, "mocks.js"), `import { createMockRuntime } from ${JSON.stringify(join(root, "dist", "frontend-runtime.js"))}; export const api = createMockRuntime({ farsiMockSpec: 1, basePath: "", resources: {}, routes: [] });`);
+    writeFileSync(join(dir, "main.js"), `import { createApiFetch } from ${JSON.stringify(join(root, "dist", "frontend-client.js"))}; export const f = createApiFetch({ mode: "mock", mock: () => import("./mocks.js") });`);
+    const r = await esbuild.build({ entryPoints: [join(dir, "main.js")], bundle: true, splitting: true, format: "esm", minify: true, write: false, outdir: join(dir, "out"), platform: "browser", logLevel: "silent" });
+    const main = r.outputFiles.find((o) => o.path.endsWith("main.js"))!;
+    const rest = r.outputFiles.filter((o) => o !== main).reduce((n, o) => n + o.text.length, 0);
+    expect(main.text.length).toBeLessThan(8_000);
+    expect(rest).toBeGreaterThan(50_000);
   });
   it("browser bundle has no node: imports", () => {
     const code = readFileSync(join(root, "dist", "farsi-mock.global.js"), "utf8");

@@ -148,6 +148,16 @@
         "default": "./dist/frontend-runtime.cjs"
       }
     },
+    "./frontend/client": {
+      "import": {
+        "types": "./dist/frontend-client.d.ts",
+        "default": "./dist/frontend-client.js"
+      },
+      "require": {
+        "types": "./dist/frontend-client.d.cts",
+        "default": "./dist/frontend-client.cjs"
+      }
+    },
     "./browser": "./dist/farsi-mock.global.js",
     "./package.json": "./package.json"
   },
@@ -219,6 +229,9 @@
       ],
       "frontend/runtime": [
         "./dist/frontend-runtime.d.ts"
+      ],
+      "frontend/client": [
+        "./dist/frontend-client.d.ts"
       ]
     }
   },

@@ -139,7 +139,10 @@ export interface AxiosLikeConfig {
   [k: string]: unknown;
 }
 export interface AxiosLikeResponse<T = unknown> { data: T; status: number; statusText: string; headers: Record<string, string>; config: AxiosLikeConfig; request: unknown }
-export type AxiosLikeAdapter = (config: AxiosLikeConfig) => Promise<AxiosLikeResponse>;
+// `any` on purpose: axios' own AxiosAdapter (InternalAxiosRequestConfig -> AxiosPromise) must fit both ways,
+// so the adapter can be passed to axios.create() and axios.getAdapter(...) can be passed as `fallback`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AxiosLikeAdapter = (config: any) => Promise<any>;
 
 function axiosUrl(c: AxiosLikeConfig): string {
   const u = c.url ?? "";
@@ -171,7 +174,7 @@ const plainHeaders = (h: unknown): Record<string, string> => {
  */
 export function createAxiosAdapter(source: MockSource, opts: { fallback?: AxiosLikeAdapter; mode?: "mock" | "hybrid"; hybridFallback?: (info: HybridInfo) => boolean } = {}): AxiosLikeAdapter {
   const get = resolver(source);
-  return async (config) => {
+  return async (config: AxiosLikeConfig): Promise<AxiosLikeResponse> => {
     const api = await get();
     const url = axiosUrl(config);
     if (opts.mode === "hybrid" && opts.fallback) {
