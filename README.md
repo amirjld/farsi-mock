@@ -40,15 +40,15 @@ import { iran } from "farsi-mock";
 iran.setReferenceDate("2026-10-20T00:00:00Z");
 iran.seed(42);                         // same output every run
 iran.person({ gender: "female", province: "اصفهان" });
-// { gender: "female", firstName: "شادی", lastName: "جعفری", fullName: "شادی جعفری",
-//   firstNameEn: "Shadi", lastNameEn: "Jafari", fullNameEn: "Shadi Jafari", fatherName: "سعید",
-//   birthDate: "1985-07-21", birthDateJalali: "1364/04/30", age: 41,
-//   nationalId: "0008894922", birthProvince: "اصفهان", birthCity: "اصفهان" }
+// { gender: "female", firstName: "کوثر", lastName: "اصفهانی", fullName: "کوثر اصفهانی",
+//   firstNameEn: "Kowsar", lastNameEn: "Esfahani", fullNameEn: "Kowsar Esfahani", fatherName: "حامد",
+//   birthDate: "1964-09-03", birthDateJalali: "1343/06/12", age: 62,
+//   nationalId: "0009492739", birthProvince: "اصفهان", birthCity: "اصفهان" }
 
-iran.mobile({ operator: "Irancell" }); // "09373949835"
-iran.landline({ province: "Fars" });   // "07170822253"
+iran.mobile({ operator: "Irancell" }); // "09414983570"
+iran.landline({ province: "Fars" });   // "07172225309"
 iran.bank();                           // { bankName: "بانک ملت", cardNumber: "6104...", sheba: "IR..12..", accountNumber }
-iran.company();                        // { name: "شرکت ... (سهامی خاص)", legalNationalId, economicCode, ... }
+iran.company();                        // { name: "شرکت ... (سهامی خاص)", type, typeEn, legalNationalId, economicCode, ... }
 iran.address();                        // { province, city, street, alley, plaque, unit, postalCode, formatted: "تهران، ..." }
 iran.many(() => iran.person(), 100);
 ```
@@ -129,10 +129,10 @@ Output of a smaller schema (seed 42; fields nationalCode, full_name, phone_numbe
 
 ```json
 [
-  { "nationalCode": "0008949271", "full_name": "سارا محمودی", "phone_number": "09059498357",
-    "city": "اصفهان", "landline": "03133370772", "createdAt": "1405/07/25" },
-  { "nationalCode": "0009707700", "full_name": "هلیا اصفهانی", "phone_number": "09019917552",
-    "city": "اصفهان", "landline": "03127079693", "createdAt": "1405/06/31" }
+  { "nationalCode": "0004927397", "full_name": "نسرین وکیلی", "phone_number": "09309835708",
+    "city": "اصفهان", "landline": "03127723159", "createdAt": "1405/07/14" },
+  { "nationalCode": "0000991759", "full_name": "ناصر شجاعی", "phone_number": "09352061371",
+    "city": "اصفهان", "landline": "03134347984", "createdAt": "1405/07/07" }
 ]
 ```
 

@@ -42,7 +42,7 @@ import { iran } from "farsi-mock";
 
 iran.seed(42);
 iran.person({ gender: "female", province: "اصفهان" });
-// { firstName: "شادی", lastName: "جعفری", nationalId: "0008894922", birthDateJalali: "1364/04/30", ... }
+// { firstName: "کوثر", lastName: "اصفهانی", nationalId: "0009492739", birthDateJalali: "1343/06/12", ... }
 
 iran.mobile({ operator: "Irancell" });
 iran.landline({ province: "فارس" });
