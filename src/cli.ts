@@ -17,6 +17,7 @@ Usage
   farsi-mock infer <file>              infer a schema from Prisma, OpenAPI, JSON Schema, a sample JSON,
                                        or a .js/.mjs module exporting a zod / mongoose schema
   farsi-mock serve <file> [--port n]   mock REST API (schema file or anything infer accepts)
+  farsi-mock mcp                       MCP server over stdio (tools for AI assistants)
   farsi-mock paths                     every field path usable in schemas
   farsi-mock banks | provinces | categories | holidays [jalali-year]
 
@@ -103,6 +104,7 @@ async function main(argv: string[]) {
   if (a.version) return out(VERSION + "\n");
   const cmd = a._[0];
   if (a.help || !cmd) return out(HELP);
+  if (cmd === "mcp") { const { serveMcpStdio } = await import("./ai.js"); serveMcpStdio(); return; }
   const seed = str(a.seed);
   const f = new Iran({ seed: seed === undefined ? undefined : /^\d+$/.test(seed) ? Number(seed) : seed, referenceDate: str(a["ref-date"]), realisticIds: Boolean(a["realistic-ids"]) });
   if (cmd === "paths") return out(Object.entries(listPaths(f)).map(([g, p]) => `${g}:\n  ${p.join("\n  ")}`).join("\n") + "\n");

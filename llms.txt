@@ -1,0 +1,24 @@
+# farsi-mock
+
+> Faker for Iran: realistic, algorithmically valid Iranian test data for TypeScript/JavaScript, with schema inference (Zod, Prisma, Mongoose, OpenAPI, JSON Schema, samples), SQL/MongoDB/TS outputs, seed helpers, a mock REST server and an MCP server. Zero runtime dependencies. MIT.
+
+Safe by default: national IDs use the never-issued `000` prefix (valid checksum), emails use example.* domains, and no real people or companies are in the data.
+
+## Docs
+- [README](https://github.com/amirjld/farsi-mock/blob/main/README.md): install, quick start, schemas, CLI
+- [README (Persian)](https://github.com/amirjld/farsi-mock/blob/main/README.fa.md)
+- [API reference](https://github.com/amirjld/farsi-mock/blob/main/docs/API.md)
+- [AI / MCP integration](https://github.com/amirjld/farsi-mock/blob/main/docs/AI.md)
+- [Agent skill](https://github.com/amirjld/farsi-mock/blob/main/skills/farsi-mock/SKILL.md)
+- [Data sources and licences](https://github.com/amirjld/farsi-mock/blob/main/DATA_SOURCES.md)
+
+## Key APIs
+- `createIran({ seed, referenceDate, realisticIds, digits })` -> generator; `iran.person()`, `iran.contact()`, `iran.bank()`, `iran.company()`, `iran.address()`, `iran.product()`, `iran.order()`, `iran.plate()`, `iran.jalali.*`, `iran.helpers.*`
+- `iran.schema({ field: "person.fullName", ... })` typed records; markers `iran.unique`, `iran.optional`, `iran.nullable`, `iran.weighted`, `iran.oneOf`, `iran.array`, `iran.ref`
+- `iran.dataset({ users: [User, 10], orders: { schema, count: { per: "users", min, max } } })`
+- `iran.fromPrisma(text)`, `fromZod(schema)`, `fromMongoose(schema)`, `fromOpenAPI(doc)`, `fromJsonSchema(json)`, `fromSample(json)` -> `.explain()`, `.dataset()`, `.toJSON()`
+- `farsi-mock/output`: `toSql`, `toMongoJson`, `toTs`, `toCsv`
+- `farsi-mock/seed`: `seedPrisma`, `seedDrizzle`, `seedMongoose`, `seedMongo`
+- `farsi-mock/server`: `createMockServer`
+- `farsi-mock/ai`: `tools`, `callTool`, `serveMcpStdio`
+- CLI: `farsi-mock <user|person|...|schema|infer|serve|mcp|paths>`
