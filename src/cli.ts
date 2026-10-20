@@ -17,6 +17,8 @@ Usage
   farsi-mock infer <file>              infer a schema from Prisma, OpenAPI, JSON Schema, a sample JSON,
                                        or a .js/.mjs module exporting a zod / mongoose schema
   farsi-mock serve <file> [--port n]   mock REST API (schema file or anything infer accepts)
+  farsi-mock frontend <spec> -o <dir>  OpenAPI/Swagger (file or URL) -> static mock module for the frontend
+                                       (spec.ts + types.ts + index.ts; see "Frontend mock mode" in the README)
   farsi-mock mcp                       MCP server over stdio (tools for AI assistants)
   farsi-mock paths                     every field path usable in schemas
   farsi-mock banks | provinces | categories | holidays [jalali-year]
@@ -61,16 +63,29 @@ Serve
       --writable           allow POST/PUT/PATCH/DELETE (in memory)
       --delay <ms>         artificial latency
 
+Frontend
+      --spec <file|url>    the OpenAPI/Swagger JSON (or pass it as the first argument)
+  -o, --out <dir>          output folder (default src/mocks)
+      --lang <l>           ts | js | json (default ts)
+      --base-url <url>     where the app calls the API (/api, https://api.example.com/v1)
+      --id <name>          store id (keeps data across hot reloads)
+      --count <n>          records per resource (default 30)
+      --images url         image fields as https://*.example.com URLs (default: offline SVG placeholders)
+      --force              also overwrite index.ts (it is only created when missing)
+      --explain            print what each route returns
+      --override f=path    same as infer (Product.title=product.name)
+
 Examples
   npx farsi-mock person -n 50 --csv
   npx farsi-mock user -n 100 --seed 42 --province اصفهان --case snake --sql --table users
   npx farsi-mock infer prisma/schema.prisma --explain --write farsi-mock.json
   npx farsi-mock infer prisma/schema.prisma --generate -n 20 --sql --dialect postgres
   npx farsi-mock serve farsi-mock.json --port 4000 --seed 1
+  npx farsi-mock frontend https://api.example.com/swagger/v1/swagger.json -o src/mocks --base-url /api
 `;
 
 interface Args { _: string[]; [k: string]: string | boolean | string[] }
-const FLAGS = new Set(["csv", "jsonl", "json", "sql", "mongo", "ts", "bom", "compact", "help", "version", "realistic-ids", "create-table", "ignore-conflicts", "explain", "generate", "writable"]);
+const FLAGS = new Set(["force", "csv", "jsonl", "json", "sql", "mongo", "ts", "bom", "compact", "help", "version", "realistic-ids", "create-table", "ignore-conflicts", "explain", "generate", "writable"]);
 const MULTI = new Set(["override"]);
 function parse(argv: string[]): Args {
   const a: Args = { _: [] };
@@ -105,6 +120,7 @@ async function main(argv: string[]) {
   const cmd = a._[0];
   if (a.help || !cmd) return out(HELP);
   if (cmd === "mcp") { const { serveMcpStdio } = await import("./ai.js"); serveMcpStdio(); return; }
+  if (cmd === "frontend") return frontendCmd(a);
   const seed = str(a.seed);
   const f = new Iran({ seed: seed === undefined ? undefined : /^\d+$/.test(seed) ? Number(seed) : seed, referenceDate: str(a["ref-date"]), realisticIds: Boolean(a["realistic-ids"]) });
   if (cmd === "paths") return out(Object.entries(listPaths(f)).map(([g, p]) => `${g}:\n  ${p.join("\n  ")}`).join("\n") + "\n");
@@ -249,6 +265,53 @@ async function inferFile(f: Iran, a: Args, file: string): Promise<InferredSchema
   }
   const from = opts.from ?? detectSource(input);
   return f.infer(input, { ...opts, from });
+}
+
+async function frontendCmd(a: Args) {
+  const src = str(a.spec) ?? a._[1];
+  if (!src) fail("frontend needs an OpenAPI/Swagger JSON: farsi-mock frontend <file|url> -o src/mocks");
+  let text: string;
+  if (/^https?:\/\//i.test(src)) {
+    const r = await fetch(src).catch((e: Error) => fail(`cannot fetch ${src}: ${e.message}`));
+    if (!r.ok) fail(`cannot fetch ${src}: HTTP ${r.status}`);
+    text = await r.text();
+  } else {
+    try { text = readFileSync(src, "utf8"); } catch (e) { fail(`cannot read ${src}: ${(e as Error).message}`); }
+  }
+  text = text.replace(/^\uFEFF/, "");
+  if (!text.trim().startsWith("{")) fail("the spec must be JSON. Convert YAML first, e.g. npx js-yaml openapi.yaml > openapi.json");
+  let doc: unknown;
+  try { doc = JSON.parse(text); } catch (e) { fail(`invalid JSON in ${src}: ${(e as Error).message}`); }
+  const overrides: Record<string, unknown> = a.overrides ? readJson(String(a.overrides)) : {};
+  for (const o of (a.override as string[] | undefined) ?? []) {
+    const i = o.indexOf("=");
+    if (i < 1) fail(`--override expects field=generator, got "${o}"`);
+    const v = o.slice(i + 1);
+    overrides[o.slice(0, i)] = /^[{["\d]/.test(v) ? JSON.parse(v) : v;
+  }
+  const lang = (str(a.lang) ?? "ts") as "ts" | "js" | "json";
+  if (!["ts", "js", "json"].includes(lang)) fail("--lang must be ts, js or json");
+  const images = str(a.images);
+  if (images && images !== "url" && images !== "svg") fail("--images must be url or svg");
+  const count = num(a.count, "count", 1);
+  const seedArg = str(a.seed);
+  const { snapshotFiles, describeSpec } = await import("./frontend/snapshot.js");
+  const { files, spec, editable } = snapshotFiles(doc, {
+    lang, overrides: overrides as Record<string, string>, count, images: images as "url" | "svg" | undefined, baseUrl: str(a["base-url"]), id: str(a.id),
+    seed: seedArg === undefined ? undefined : /^\d+$/.test(seedArg) ? Number(seedArg) : seedArg, nullRate: num(a["null-rate"], "null-rate"),
+    command: `npx farsi-mock frontend ${src} -o ${str(a.out) ?? "src/mocks"}${lang !== "ts" ? ` --lang ${lang}` : ""}`,
+  });
+  if (a.explain) process.stderr.write(describeSpec(spec) + "\n");
+  const dir = resolve(str(a.out) ?? "src/mocks");
+  const { mkdirSync, existsSync } = await import("node:fs");
+  mkdirSync(dir, { recursive: true });
+  for (const [name, content] of Object.entries(files)) {
+    const file = resolve(dir, name);
+    if (editable.includes(name) && existsSync(file) && !a.force) { process.stderr.write(`kept ${file} (exists; --force to overwrite)\n`); continue; }
+    writeFileSync(file, content);
+    process.stderr.write(`wrote ${file}\n`);
+  }
+  process.stderr.write(`${spec.routes.length} routes, ${Object.keys(spec.resources).length} resources (${Object.keys(spec.resources).join(", ")})\n`);
 }
 
 function strip<T extends object>(o: T): T { return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T; }
