@@ -154,6 +154,9 @@ const FRESH: Record<string, (ctx: RecordContext) => unknown> = {
   "geo.point": (c) => [c.geo.longitude, c.geo.latitude],
   "internet.username": (c) => `${c.person.firstNameEn}.${c.person.lastNameEn}${c.f.int(1, 999)}`.toLowerCase().replace(/[^a-z0-9.]/g, ""),
   "internet.url": (c) => `https://${c.f.word().length ? "shop" : "site"}${c.f.int(1, 9999)}.example.com`,
+  "internet.image": (c) => placeholderImage(c.f, 640, 480),
+  "internet.avatar": (c) => placeholderImage(c.f, 128, 128, (c.person.firstName[0] ?? "") + (c.person.lastName[0] ?? "")),
+  "internet.thumbnail": (c) => placeholderImage(c.f, 320, 240),
   "internet.slug": (c) => c.f.helpers.slugify(c.product.name),
   "internet.password": (c) => c.f.helpers.replaceSymbols("??##**??##*"),
   "internet.ip": (c) => `10.${c.f.int(0, 255)}.${c.f.int(0, 255)}.${c.f.int(1, 254)}`,
@@ -176,6 +179,15 @@ const FRESH: Record<string, (ctx: RecordContext) => unknown> = {
 
 let entityFields: Record<string, string[]> | undefined;
 /** All supported string paths, grouped. */
+/** Offline placeholder image: an SVG data URI (renders in <img> without network). */
+function placeholderImage(f: Iran, w: number, h: number, label?: string): string {
+  const hue = f.int(0, 359);
+  const text = label || `${w}×${h}`;
+  const fs = Math.round(Math.min(w, h) / (label ? 2.6 : 6));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="hsl(${hue},45%,82%)"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Vazirmatn,Tahoma,sans-serif" font-size="${fs}" fill="hsl(${hue},35%,35%)">${text}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 export function listPaths(f: Iran): Record<string, string[]> {
   if (!entityFields) {
     const probe = new (f.constructor as new (o: object) => Iran)({ seed: 1, referenceDate: "2026-01-01T00:00:00Z" });
