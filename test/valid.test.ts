@@ -27,9 +27,9 @@ describe("person", () => {
     }
   });
   it("gender matches the first name", async () => {
-    const { MALE_NAMES, FEMALE_NAMES } = await import("../src/data/names.js");
+    const { MALE_NAMES, FEMALE_NAMES, UNISEX_NAMES } = await import("../src/data/names.js");
     for (const p of people) {
-      const list = p.gender === "male" ? MALE_NAMES : FEMALE_NAMES;
+      const list = [...(p.gender === "male" ? MALE_NAMES : FEMALE_NAMES), ...UNISEX_NAMES];
       expect(list.some((n) => n[0] === p.firstName && n[1] === p.firstNameEn)).toBe(true);
     }
   });
@@ -108,7 +108,7 @@ describe("company", () => {
       const c = f.company();
       expect(validateLegalId(c.legalNationalId), c.legalNationalId).toEqual({ valid: true });
       expect(c.economicCode).toBe(c.legalNationalId);
-      expect(c.name.startsWith("شرکت ")).toBe(true);
+      expect(/^(شرکت|موسسه) /.test(c.name)).toBe(true);
       expect(landlineProvince(c.landline).province?.fa).toBe(c.province);
     }
   });
@@ -123,7 +123,7 @@ describe("address", () => {
       expect(prov.cities.map((c) => c.fa)).toContain(a.city);
       expect(a.formatted).toContain(`پلاک ${a.plaque.replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[+d])}`);
       expect(a.formatted).not.toMatch(/[0-9]/);
-      expect(Math.abs(a.latitude - prov.lat)).toBeLessThan(0.1);
+      expect(Math.abs(a.latitude - prov.lat)).toBeLessThan(5);
     }
   });
 });

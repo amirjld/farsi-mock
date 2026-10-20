@@ -1,11 +1,18 @@
 import type { Iran, Gender, Person, Contact, Address, BankAccount, Company, Product, Order, Operator } from "./iran.js";
 import type { ProvinceData, City } from "./data/places.js";
 import { PROVINCES } from "./data/places.js";
-import { jalaliOf } from "./jalali.js";
+import { jalaliOf, toLatinDigits, toPersianDigits } from "./jalali.js";
+import type { Path, Infer, Simplify } from "./types.js";
 
 export type GenFn = (f: Iran, ctx: RecordContext) => unknown;
-/** A field generator: a path like "person.fullName", a function, a literal number/boolean/null, a nested object, an array marker, or a nested schema. */
-export type Gen = string | GenFn | number | boolean | null | ArrayMarker | Literal | Schema | SchemaDef | Gen[];
+/**
+ * A field generator: a path like "person.fullName", a function, a literal number/boolean/null, a nested object,
+ * an array marker, a nested schema, or a constraint marker (unique / optional / nullable / oneOf).
+ */
+export type Gen =
+  | Path | (string & {}) | GenFn | number | boolean | null
+  | ArrayMarker<any> | Literal<unknown> | UniqueMarker<any> | OptionalMarker<any, any> | OneOfMarker<any>
+  | Schema<any> | SchemaDef | readonly Gen[];
 export interface SchemaDef { [field: string]: Gen }
 export type KeyCase = "preserve" | "camel" | "snake" | "pascal" | "kebab";
 
@@ -13,12 +20,36 @@ export interface ContextOptions {
   province?: string; city?: string; gender?: Gender; operator?: Operator | Lowercase<Operator>; bank?: string;
   category?: string; minAge?: number; maxAge?: number; realisticIds?: boolean; emailDomains?: string[];
 }
-export interface SchemaOptions { context?: ContextOptions; case?: KeyCase }
+export interface SchemaOptions {
+  context?: ContextOptions;
+  case?: KeyCase;
+  /** Record-level uniqueness: field names (or tuples of names) that must not repeat within one many()/dataset entity. */
+  uniqueBy?: string | readonly (string | readonly string[])[];
+  /**
+   * Digits in string values. "latin": every digit becomes ASCII. "fa": Persian digits in text values; machine
+   * formats (emails, URLs, UUIDs, ISO dates, IDs/phones that are only digits) stay Latin unless `digitsAll`.
+   */
+  digits?: "fa" | "latin";
+  digitsAll?: boolean;
+}
 
-export class ArrayMarker { constructor(readonly n: number | [number, number], readonly gen: Gen) {} }
-export class Literal { constructor(readonly value: unknown) {} }
+export class ArrayMarker<G = Gen> { constructor(readonly n: number | readonly [number, number], readonly gen: G) {} }
+export class Literal<V = unknown> { constructor(readonly value: V) {} }
+export class UniqueMarker<G = Gen> { constructor(readonly gen: G, readonly maxRetries = 200) {} }
+export class OptionalMarker<G = Gen, M extends null | undefined = null | undefined> {
+  declare readonly _m: M;
+  constructor(readonly gen: G, readonly rate: number, readonly mode: "null" | "omit") {
+    if (!(rate >= 0 && rate <= 1)) throw new Error("farsi-mock: optional/nullable rate must be between 0 and 1");
+  }
+}
+export class OneOfMarker<G extends readonly unknown[] = readonly Gen[]> { constructor(readonly gens: G) {} }
 /** Use a string as a literal value instead of a path. */
-export const literal = (value: unknown) => new Literal(value);
+export const literal = <const V>(value: V) => new Literal<V>(value);
+const OMIT = Symbol("omit");
+
+/** State shared by all records of one many()/dataset entity call. */
+export interface RunState { unique: Map<object, Set<unknown>>; usedRefs: Map<unknown, Set<number>> }
+const newRun = (): RunState => ({ unique: new Map(), usedRefs: new Map() });
 
 /** Per-record context. Entities are created lazily, once per record, so every field of a record agrees. */
 export class RecordContext {
@@ -28,6 +59,9 @@ export class RecordContext {
   private cache = new Map<string, unknown>();
   /** Fields of the current record generated so far (top level, in definition order). */
   record?: Record<string, unknown>;
+  /** In dataset entries with `count: { per: "users" }`, the parent record this record belongs to. */
+  readonly parentRecord?: Record<string, unknown>;
+  /** @internal */ readonly run: RunState;
 
   constructor(
     readonly f: Iran,
@@ -35,7 +69,11 @@ export class RecordContext {
     readonly options: ContextOptions,
     readonly refs: Record<string, Record<string, unknown>[]> = {},
     private parent?: RecordContext,
+    run?: RunState,
+    parentRecord?: Record<string, unknown>,
   ) {
+    this.run = run ?? parent?.run ?? newRun();
+    this.parentRecord = parentRecord ?? parent?.parentRecord;
     this.province = parent?.province ?? f.provinceData(options.province);
     this.city = parent?.city ?? f.cityData(this.province, options.city);
     this.gender = parent?.gender ?? options.gender ?? f.gender();
@@ -75,10 +113,12 @@ export class RecordContext {
     return { name: this.province.fa, nameEn: this.province.en, iso: this.province.iso, id: PROVINCES.indexOf(this.province) + 1, areaCode: "0" + this.province.areaCode };
   }
   get cityInfo() { return { name: this.city.fa, nameEn: this.city.en }; }
+  get plate() { return this.once("plate", () => this.f.plate()); }
+  get geo() { return { latitude: this.address.latitude, longitude: this.address.longitude }; }
 }
 
 type Resolver = (ctx: RecordContext) => unknown;
-const ENTITIES = ["person", "contact", "address", "bank", "company", "product", "order"] as const;
+export const ENTITIES = ["person", "contact", "address", "bank", "company", "product", "order"] as const;
 
 const FRESH: Record<string, (ctx: RecordContext) => unknown> = {
   "id.uuid": (c) => c.f.uuid(),
@@ -100,7 +140,25 @@ const FRESH: Record<string, (ctx: RecordContext) => unknown> = {
   "number.float": (c) => c.f.float(0, 1000, 2),
   "number.rating": (c) => c.f.float(2.5, 5, 1),
   "number.percent": (c) => c.f.int(0, 100),
+  "date.dateTimeJalali": (c) => jalaliOf(c.f.recentDate()).dateTime,
+  "date.workday": (c) => c.f.jalali.recentWorkday().toISOString(),
+  "date.workdayJalali": (c) => jalaliOf(c.f.jalali.recentWorkday()).formatted,
+  "date.birthDate": (c) => c.person.birthDate,
   "helpers.bool": (c) => c.f.bool(),
+  "person.education": (c) => c.f.education(),
+  "person.educationEn": (c) => c.f.education({ en: true }),
+  "vehicle.plate": (c) => c.plate.formatted,
+  "vehicle.plateLatin": (c) => toLatinDigits(c.plate.formatted),
+  "geo.latitude": (c) => c.geo.latitude,
+  "geo.longitude": (c) => c.geo.longitude,
+  "geo.point": (c) => [c.geo.longitude, c.geo.latitude],
+  "internet.username": (c) => `${c.person.firstNameEn}.${c.person.lastNameEn}${c.f.int(1, 999)}`.toLowerCase().replace(/[^a-z0-9.]/g, ""),
+  "internet.url": (c) => `https://${c.f.word().length ? "shop" : "site"}${c.f.int(1, 9999)}.example.com`,
+  "internet.slug": (c) => c.f.helpers.slugify(c.product.name),
+  "internet.password": (c) => c.f.helpers.replaceSymbols("??##**??##*"),
+  "internet.ip": (c) => `10.${c.f.int(0, 255)}.${c.f.int(0, 255)}.${c.f.int(1, 254)}`,
+  "commerce.category": (c) => c.product.category,
+  "company.typeName": (c) => c.company.type,
   "commerce.price": (c) => c.f.price(),
   "commerce.productName": (c) => c.f.productName({ category: c.options.category }),
   "commerce.sku": (c) => c.f.sku(),
@@ -137,6 +195,13 @@ function compilePath(f: Iran, path: string): Resolver {
     return (ctx) => fn(ctx.f, ctx);
   }
   if (FRESH[path]) return FRESH[path];
+  if (path === "parent" || path.startsWith("parent.")) {
+    const sub = path.slice(7);
+    return (ctx) => {
+      if (!ctx.parentRecord) throw new Error(`farsi-mock: "${path}" only works in dataset entries with count: { per: "<entity>" }`);
+      return clone(sub ? getPath(ctx.parentRecord, sub) : ctx.parentRecord);
+    };
+  }
   const [ns, field, ...more] = path.split(".");
   if ((ENTITIES as readonly string[]).includes(ns)) {
     const fields = listPaths(f)[ns];
@@ -168,17 +233,40 @@ function structuredCloneSafe(v: unknown): unknown { return JSON.parse(JSON.strin
 function compile(f: Iran, gen: Gen): Resolver {
   if (typeof gen === "string") return compilePath(f, gen);
   if (typeof gen === "number" || typeof gen === "boolean" || gen === null) return () => gen;
+  if (gen === undefined) throw new Error("farsi-mock: a field generator is undefined");
   if (gen instanceof Literal) return () => clone(gen.value);
   if (typeof gen === "function") return (ctx) => finish(f, gen(ctx.f, ctx), ctx);
   if (gen instanceof ArrayMarker) {
     const item = compile(f, gen.gen);
     return (ctx) => {
-      const n = Array.isArray(gen.n) ? ctx.f.int(gen.n[0], gen.n[1]) : gen.n;
-      return Array.from({ length: n }, (_, i) => item(ctx.child(i)));
+      const n = typeof gen.n === "number" ? gen.n : ctx.f.int(gen.n[0], gen.n[1]);
+      return Array.from({ length: n }, (_, i) => item(ctx.child(i))).filter((v) => v !== OMIT);
     };
   }
   if (gen instanceof Schema) return (ctx) => gen.build(ctx.child(ctx.index));
-  if (Array.isArray(gen)) { const items = gen.map((g) => compile(f, g)); return (ctx) => items.map((r) => r(ctx)); }
+  if (gen instanceof UniqueMarker) {
+    const inner = compile(f, gen.gen as Gen);
+    return (ctx) => {
+      let seen = ctx.run.unique.get(gen);
+      if (!seen) ctx.run.unique.set(gen, (seen = new Set()));
+      for (let i = 0; i < gen.maxRetries; i++) {
+        const v = inner(ctx);
+        const k = v && typeof v === "object" ? JSON.stringify(v) : v;
+        if (!seen.has(k)) { seen.add(k); return v; }
+      }
+      throw new Error(`farsi-mock: unique() gave up after ${gen.maxRetries} tries (generator has too few distinct values for this count)`);
+    };
+  }
+  if (gen instanceof OptionalMarker) {
+    const inner = compile(f, gen.gen as Gen);
+    const empty = gen.mode === "omit" ? OMIT : null;
+    return (ctx) => (ctx.f.bool(gen.rate) ? empty : inner(ctx));
+  }
+  if (gen instanceof OneOfMarker) {
+    const items = (gen.gens as readonly Gen[]).map((g) => compile(f, g));
+    return (ctx) => ctx.f.pick(items)(ctx);
+  }
+  if (Array.isArray(gen)) { const items = (gen as readonly Gen[]).map((g) => compile(f, g)); return (ctx) => items.map((r) => r(ctx)).filter((v) => v !== OMIT); }
   if (typeof gen === "object") {
     const entries = Object.entries(gen).map(([k, g]) => [k, compile(f, g)] as const);
     return (ctx) => {
@@ -186,7 +274,7 @@ function compile(f: Iran, gen: Gen): Resolver {
       const top = ctx.record === undefined;
       const o: Record<string, unknown> = {};
       if (top) ctx.record = o;
-      for (const [k, r] of entries) o[k] = r(ctx);
+      for (const [k, r] of entries) { const v = r(ctx); if (v !== OMIT) o[k] = v; }
       return o;
     };
   }
@@ -195,86 +283,170 @@ function compile(f: Iran, gen: Gen): Resolver {
 
 /** Values returned by user functions may themselves be markers/paths-as-markers; Dates become ISO strings. */
 function finish(f: Iran, v: unknown, ctx: RecordContext): unknown {
-  if (v instanceof ArrayMarker || v instanceof Schema || v instanceof Literal) return compile(f, v)(ctx);
+  if (v instanceof ArrayMarker || v instanceof Schema || v instanceof Literal || v instanceof UniqueMarker || v instanceof OptionalMarker || v instanceof OneOfMarker) return compile(f, v as Gen)(ctx);
   if (v instanceof Date) return v.toISOString();
   return v;
 }
 
-export class Schema {
+export class Schema<T = Record<string, unknown>> {
   private resolver: Resolver;
+  private uniqueKeys: (readonly string[])[];
   /** Records from the most recent many()/one() call, used by refs. */
-  last: Record<string, unknown>[] = [];
+  last: T[] = [];
 
   constructor(readonly f: Iran, readonly def: SchemaDef, readonly options: SchemaOptions = {}) {
     this.resolver = compile(f, def);
+    const u = options.uniqueBy;
+    this.uniqueKeys = u === undefined ? [] : typeof u === "string" ? [[u]] : u.map((k) => (typeof k === "string" ? [k] : k));
   }
 
-  /** @internal */ build(ctx: RecordContext): Record<string, unknown> {
-    return applyCase(this.resolver(ctx), this.options.case ?? "preserve") as Record<string, unknown>;
+  /** @internal */ build(ctx: RecordContext): T {
+    let v = this.resolver(ctx);
+    if (this.options.digits) v = convertDigits(v, this.options.digits, !!this.options.digitsAll);
+    return applyCase(v, this.options.case ?? "preserve") as T;
   }
 
   /** One record. */
-  one(context: ContextOptions = {}, refs?: Record<string, Record<string, unknown>[]>): Record<string, unknown> {
+  one(context: ContextOptions = {}, refs?: Record<string, Record<string, unknown>[]>): T {
     const r = this.build(new RecordContext(this.f, 0, { ...this.options.context, ...context }, refs));
     this.last = [r];
     return r;
   }
 
   /** n records. */
-  many(n: number, context: ContextOptions = {}, refs?: Record<string, Record<string, unknown>[]>): Record<string, unknown>[] {
-    const opts = { ...this.options.context, ...context };
-    const out = Array.from({ length: n }, (_, i) => this.build(new RecordContext(this.f, i, opts, refs)));
+  many(n: number, context: ContextOptions = {}, refs?: Record<string, Record<string, unknown>[]>): T[] {
+    const out = this.generate(n, context, refs);
     this.last = out;
     return out;
   }
 
+  /** @internal */ generate(n: number, context: ContextOptions = {}, refs?: Record<string, Record<string, unknown>[]>, run: RunState = newRun(), parent?: Record<string, unknown>, offset = 0): T[] {
+    const opts = { ...this.options.context, ...context };
+    const seen = this.uniqueKeys.map(() => new Set<string>());
+    const out: T[] = [];
+    for (let i = 0; i < n; i++) {
+      let r: T | undefined;
+      for (let attempt = 0; ; attempt++) {
+        r = this.build(new RecordContext(this.f, offset + i, opts, refs, undefined, run, parent));
+        if (!this.uniqueKeys.length) break;
+        const keys = this.uniqueKeys.map((ks) => JSON.stringify(ks.map((k) => getPath(r, k))));
+        if (keys.every((k, j) => !seen[j].has(k))) { keys.forEach((k, j) => seen[j].add(k)); break; }
+        if (attempt >= 200) throw new Error(`farsi-mock: uniqueBy ${JSON.stringify(this.options.uniqueBy)} could not be satisfied after 200 tries`);
+      }
+      out.push(r);
+    }
+    return out;
+  }
+
   /** New schema with extra / overridden fields. */
-  extend(def: SchemaDef, options: SchemaOptions = {}): Schema { return new Schema(this.f, { ...this.def, ...def }, mergeOpts(this.options, options)); }
-  omit(...keys: string[]): Schema { return new Schema(this.f, Object.fromEntries(Object.entries(this.def).filter(([k]) => !keys.includes(k))), this.options); }
-  pick(...keys: string[]): Schema { return new Schema(this.f, Object.fromEntries(keys.filter((k) => k in this.def).map((k) => [k, this.def[k]])), this.options); }
+  extend<const E extends SchemaDef>(def: E, options: SchemaOptions = {}): Schema<Simplify<Omit<T, keyof E> & Infer<E>>> {
+    return new Schema(this.f, { ...this.def, ...def }, mergeOpts(this.options, options));
+  }
+  omit<K extends keyof T & string>(...keys: K[]): Schema<Simplify<Omit<T, K>>> {
+    return new Schema(this.f, Object.fromEntries(Object.entries(this.def).filter(([k]) => !keys.includes(k as K))), this.options);
+  }
+  pick<K extends keyof T & string>(...keys: K[]): Schema<Simplify<Pick<T, K>>> {
+    return new Schema(this.f, Object.fromEntries(keys.filter((k) => k in this.def).map((k) => [k, this.def[k]])), this.options);
+  }
   /** Rename top-level fields, e.g. { mobile: "phone_number" }. */
-  rename(map: Record<string, string>): Schema { return new Schema(this.f, Object.fromEntries(Object.entries(this.def).map(([k, v]) => [map[k] ?? k, v])), this.options); }
-  withContext(context: ContextOptions): Schema { return new Schema(this.f, this.def, mergeOpts(this.options, { context })); }
-  withCase(keyCase: KeyCase): Schema { return new Schema(this.f, this.def, { ...this.options, case: keyCase }); }
+  rename<const M extends Partial<Record<keyof T & string, string>>>(map: M): Schema<Simplify<RenameKeys<T, M>>> {
+    const m = map as Record<string, string>;
+    return new Schema(this.f, Object.fromEntries(Object.entries(this.def).map(([k, v]) => [m[k] ?? k, v])), this.options);
+  }
+  withContext(context: ContextOptions): Schema<T> { return new Schema<T>(this.f, this.def, mergeOpts(this.options, { context })); }
+  /** Note: the static type keeps the original keys. */
+  withCase(keyCase: KeyCase): Schema<T> { return new Schema<T>(this.f, this.def, { ...this.options, case: keyCase }); }
+  withOptions(options: SchemaOptions): Schema<T> { return new Schema<T>(this.f, this.def, mergeOpts(this.options, options)); }
+}
+
+type RenameKeys<T, M> = { [K in keyof T as K extends keyof M ? (M[K] extends string ? M[K] : K) : K]: T[K] };
+
+const MACHINE = /@|:\/\/|^[0-9a-f]{8}-[0-9a-f]{4}-|^[0-9a-f]{24}$|^\d{4}-\d{2}-\d{2}T|^[+\d\s-]+$|^[A-Z]{2}\d+$|^[A-Z]+-/;
+function convertDigits(v: unknown, mode: "fa" | "latin", all: boolean): unknown {
+  if (typeof v === "string") return mode === "latin" ? toLatinDigits(v) : !all && MACHINE.test(v) ? v : toPersianDigits(v);
+  if (Array.isArray(v)) return v.map((x) => convertDigits(x, mode, all));
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, convertDigits(x, mode, all)]));
+  return v;
 }
 
 function mergeOpts(a: SchemaOptions, b: SchemaOptions): SchemaOptions { return { ...a, ...b, context: { ...a.context, ...b.context } }; }
 
 // ---------- refs ----------
-export type RefSource = Schema | Record<string, unknown>[] | string;
+export type RefSource = Schema<any> | readonly Record<string, unknown>[] | string;
+export interface RefOptions {
+  /** Field to copy (dot path). Omit/empty for the whole record. Default "id". */
+  field?: string;
+  /** Pick each source record at most once per run (one-to-one). Throws when the source runs out. */
+  unique?: boolean;
+}
 
-export function makeRef(source: RefSource, field: string | undefined = "id"): GenFn {
+export function makeRef(source: RefSource, field: string | RefOptions | undefined = "id"): GenFn {
+  const o: RefOptions = typeof field === "object" ? field : { field };
+  const path = typeof field === "object" ? (field.field ?? "id") : field;
   return (f, ctx) => {
-    let records: Record<string, unknown>[];
+    let records: readonly Record<string, unknown>[];
     if (typeof source === "string") {
       records = ctx.refs[source];
       if (!records) throw new Error(`farsi-mock: ref to "${source}" but no such entity was generated earlier in this dataset`);
     } else if (source instanceof Schema) {
-      records = source.last;
+      records = source.last as Record<string, unknown>[];
       if (!records.length) throw new Error("farsi-mock: ref to a schema that has not generated any records yet; call .many() on it first");
     } else records = source;
     if (!records.length) throw new Error("farsi-mock: ref source is empty");
-    const r = f.pick(records);
-    return field ? getPath(r, field) : clone(r);
+    let r: Record<string, unknown>;
+    if (o.unique) {
+      const key = typeof source === "string" ? `name:${source}` : records;
+      let used = ctx.run.usedRefs.get(key);
+      if (!used) ctx.run.usedRefs.set(key, (used = new Set()));
+      if (used.size >= records.length) throw new Error(`farsi-mock: unique ref exhausted (${records.length} source records)`);
+      let idx = f.int(0, records.length - 1);
+      while (used.has(idx)) idx = (idx + 1) % records.length;
+      used.add(idx);
+      r = records[idx];
+    } else r = f.pick(records);
+    return path ? getPath(r, path) : clone(r);
   };
 }
 
 const getPath = (o: unknown, path: string) => path.split(".").reduce<unknown>((a, k) => (a == null ? undefined : (a as Record<string, unknown>)[k]), o);
 
 // ---------- datasets ----------
-export type DatasetEntry = { schema: Schema | SchemaDef; count: number; context?: ContextOptions; case?: KeyCase } | [Schema | SchemaDef, number];
+/** Fixed count, or `{ per: "users", min: 1, max: 3 }` = 1-3 records for every record of `users` (use "parent.<field>" paths). */
+export type DatasetCount = number | { per: string; min?: number; max?: number; count?: number };
+export type DatasetEntry =
+  | { schema: Schema<any> | SchemaDef; count: DatasetCount; context?: ContextOptions; case?: KeyCase; uniqueBy?: SchemaOptions["uniqueBy"] }
+  | readonly [Schema<any> | SchemaDef, DatasetCount];
 export type DatasetSpec = Record<string, DatasetEntry>;
+type EntrySchema<E> = E extends { schema: infer S } ? S : E extends readonly [infer S, unknown] ? S : never;
+type RecordOf<S> = S extends Schema<infer T> ? T : S extends SchemaDef ? Infer<S> : Record<string, unknown>;
+export type DatasetResult<S> = { [K in keyof S]: RecordOf<EntrySchema<S[K]>>[] };
 
-export function generateDataset(f: Iran, spec: DatasetSpec): Record<string, Record<string, unknown>[]> {
+export function generateDataset<S extends DatasetSpec>(f: Iran, spec: S): DatasetResult<S> {
   const out: Record<string, Record<string, unknown>[]> = {};
   for (const [name, entry] of Object.entries(spec)) {
-    const e = Array.isArray(entry) ? { schema: entry[0], count: entry[1] } : entry;
-    let s = e.schema instanceof Schema ? e.schema : new Schema(f, e.schema);
-    if (!Array.isArray(entry) && entry.case) s = s.withCase(entry.case);
-    out[name] = s.many(e.count, Array.isArray(entry) ? {} : entry.context ?? {}, out);
+    const e = isTuple(entry) ? { schema: entry[0], count: entry[1] } : entry;
+    let s: Schema<any> = e.schema instanceof Schema ? e.schema : new Schema(f, e.schema as SchemaDef);
+    if (!isTuple(entry) && (entry.case || entry.uniqueBy)) s = s.withOptions({ ...(entry.case ? { case: entry.case } : {}), ...(entry.uniqueBy ? { uniqueBy: entry.uniqueBy } : {}) });
+    const ctxOpts = isTuple(entry) ? {} : entry.context ?? {};
+    const run = newRun();
+    let records: Record<string, unknown>[];
+    if (typeof e.count === "number") records = s.generate(e.count, ctxOpts, out, run);
+    else {
+      const c = e.count;
+      const parents = out[c.per];
+      if (!parents) throw new Error(`farsi-mock: "${name}" has count.per "${c.per}" but that entity is not defined before it`);
+      records = [];
+      for (const p of parents) {
+        const n = c.count ?? f.int(c.min ?? 1, c.max ?? c.min ?? 3);
+        records.push(...s.generate(n, ctxOpts, out, run, p, records.length));
+      }
+    }
+    s.last = records;
+    out[name] = records;
   }
-  return out;
+  return out as DatasetResult<S>;
 }
+const isTuple = (e: DatasetEntry): e is readonly [Schema<any> | SchemaDef, DatasetCount] => Array.isArray(e);
 
 // ---------- key case ----------
 function words(k: string): string[] {
@@ -314,6 +486,13 @@ export function fromJson(f: Iran, json: unknown): Gen {
     const parts = [...t.matchAll(/\{([^}]+)\}/g)].map((m) => [m[0], compile(f, m[1])] as const);
     return (_x, ctx) => parts.reduce((s, [token, r]) => s.replace(token, String(r(ctx))), t);
   }
+  if ("$unique" in o) return new UniqueMarker(fromJson(f, o.$unique));
+  if ("$nullable" in o) return new OptionalMarker(fromJson(f, o.$nullable), typeof o.rate === "number" ? o.rate : 0.2, "null");
+  if ("$optional" in o) return new OptionalMarker(fromJson(f, o.$optional), typeof o.rate === "number" ? o.rate : 0.2, "omit");
+  if ("$oneOf" in o) return new OneOfMarker((o.$oneOf as unknown[]).map((x) => fromJson(f, x)));
+  if ("$weighted" in o) { const list = o.$weighted as [unknown, number][]; return (x) => clone(x.helpers.weightedArrayElement(list)); }
+  if ("$regex" in o) { const re = String(o.$regex); return (x) => x.helpers.fromRegExp(re); }
+  if ("$ref" in o) { const [name, ...rest] = String(o.$ref).split("."); return makeRef(name, { field: rest.join(".") || "id", unique: o.unique === true }); }
   if ("$gen" in o) {
     const name = String(o.$gen);
     if (!GEN_ALLOW.includes(name)) throw new Error(`farsi-mock: $gen "${name}" is not allowed. Allowed: ${GEN_ALLOW.join(", ")}`);
@@ -326,5 +505,5 @@ export function fromJson(f: Iran, json: unknown): Gen {
 export const GEN_ALLOW = [
   "mobile", "landline", "nationalId", "postalCode", "email", "cardNumber", "sheba", "accountNumber", "price", "productName", "sku",
   "orderNumber", "legalNationalId", "firstName", "lastName", "city", "gender", "uuid", "objectId", "sentence", "paragraph", "word",
-  "person", "contact", "address", "bank", "company", "product", "order",
+  "person", "contact", "address", "bank", "company", "product", "order", "plate", "education", "street",
 ];

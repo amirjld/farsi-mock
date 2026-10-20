@@ -1,5 +1,6 @@
-// Hand-curated common Iranian given names and surnames (Persian + Latin spelling).
+// Hand-curated common Iranian given names and surnames (Persian + standard Latin spelling).
 // Common names are plain facts, not copyrighted data. See DATA_SOURCES.md.
+// Compound words use ZWNJ (U+200C), e.g. "حسن‌زاده".
 
 export type Name = readonly [fa: string, en: string];
 
@@ -14,6 +15,16 @@ export const MALE_NAMES: Name[] = [
   ["مصطفی", "Mostafa"], ["مرتضی", "Morteza"], ["داوود", "Davood"], ["بابک", "Babak"], ["شاهین", "Shahin"],
   ["کوروش", "Kourosh"], ["ایمان", "Iman"], ["رامین", "Ramin"], ["فرزاد", "Farzad"], ["سامان", "Saman"],
   ["مهران", "Mehran"], ["هادی", "Hadi"], ["صادق", "Sadegh"], ["محسن", "Mohsen"], ["علیرضا", "Alireza"],
+  ["امیرعلی", "Amirali"], ["محمدحسین", "Mohammadhossein"], ["محمدمهدی", "Mohammadmahdi"], ["طاها", "Taha"], ["حسام", "Hesam"],
+  ["بنیامین", "Benyamin"], ["آرمان", "Arman"], ["اشکان", "Ashkan"], ["کیوان", "Keyvan"], ["سهیل", "Soheil"],
+  ["پدرام", "Pedram"], ["فرشاد", "Farshad"], ["بهنام", "Behnam"], ["شهرام", "Shahram"], ["کاوه", "Kaveh"],
+  ["سروش", "Soroush"], ["مازیار", "Maziar"], ["نوید", "Navid"], ["احسان", "Ehsan"], ["روزبه", "Roozbeh"],
+  ["سیاوش", "Siavash"], ["اسماعیل", "Esmaeil"], ["ابراهیم", "Ebrahim"], ["یعقوب", "Yaghoub"], ["عباس", "Abbas"],
+  ["جمشید", "Jamshid"], ["منصور", "Mansour"], ["ناصر", "Naser"], ["خسرو", "Khosrow"], ["شهاب", "Shahab"],
+  ["میثم", "Meysam"], ["مهرداد", "Mehrdad"], ["حامد", "Hamed"], ["حمیدرضا", "Hamidreza"], ["اردلان", "Ardalan"],
+  ["بردیا", "Bardia"], ["دانیال", "Danial"], ["رادین", "Radin"], ["ماهان", "Mahan"], ["آریان", "Aryan"],
+  ["سپهر", "Sepehr"], ["امین", "Amin"], ["یاشار", "Yashar"], ["کسری", "Kasra"], ["متین", "Matin"],
+  ["نریمان", "Nariman"], ["فریبرز", "Fariborz"], ["بیژن", "Bijan"], ["هوشنگ", "Houshang"],
 ];
 
 export const FEMALE_NAMES: Name[] = [
@@ -27,6 +38,22 @@ export const FEMALE_NAMES: Name[] = [
   ["آتنا", "Atena"], ["هلیا", "Helia"], ["ستاره", "Setareh"], ["پرستو", "Parastoo"], ["بهاره", "Bahareh"],
   ["سحر", "Sahar"], ["نسیم", "Nasim"], ["ملیکا", "Melika"], ["رها", "Raha"], ["آوا", "Ava"],
   ["فرزانه", "Farzaneh"], ["مژگان", "Mozhgan"], ["سپیده", "Sepideh"], ["مائده", "Maedeh"], ["نیکی", "Niki"],
+  ["فاطمه‌زهرا", "Fatemehzahra"], ["حدیث", "Hadis"], ["کیمیا", "Kimia"], ["پریا", "Paria"], ["صبا", "Saba"],
+  ["مهشید", "Mahshid"], ["شیرین", "Shirin"], ["گلاره", "Golareh"], ["ژیلا", "Zhila"], ["ثمین", "Samin"],
+  ["نیوشا", "Niusha"], ["مهناز", "Mahnaz"], ["منیژه", "Manijeh"], ["پروین", "Parvin"], ["شهلا", "Shahla"],
+  ["اکرم", "Akram"], ["اعظم", "Azam"], ["سودابه", "Soudabeh"], ["فریبا", "Fariba"], ["مرجان", "Marjan"],
+  ["بنفشه", "Banafsheh"], ["نازیلا", "Nazila"], ["سوگند", "Sogand"], ["آناهیتا", "Anahita"], ["درسا", "Dorsa"],
+  ["ارغوان", "Arghavan"], ["یگانه", "Yeganeh"], ["تینا", "Tina"], ["غزل", "Ghazal"], ["مهرنوش", "Mehrnoush"],
+  ["سیما", "Sima"], ["افسانه", "Afsaneh"], ["زیبا", "Ziba"], ["مهدیه", "Mahdieh"], ["فهیمه", "Fahimeh"],
+  ["راضیه", "Razieh"], ["سمیه", "Somayeh"], ["عاطفه", "Atefeh"], ["نجمه", "Najmeh"], ["زهره", "Zohreh"],
+  ["آرزو", "Arezoo"], ["گلنار", "Golnar"], ["بهار", "Bahar"], ["رعنا", "Rana"], ["پانته‌آ", "Panteha"],
+  ["لاله", "Laleh"], ["مهرسا", "Mehrsa"], ["ثنا", "Sana"], ["النا", "Elena"], ["نیایش", "Niayesh"],
+];
+
+/** Names used for both genders. Picked for either gender at a low rate. */
+export const UNISEX_NAMES: Name[] = [
+  ["آریا", "Arya"], ["آذر", "Azar"], ["نیکو", "Nikoo"], ["روشن", "Roshan"], ["مهر", "Mehr"],
+  ["شمیم", "Shamim"], ["صدف", "Sadaf"],
 ];
 
 export const LAST_NAMES: Name[] = [
@@ -45,6 +72,20 @@ export const LAST_NAMES: Name[] = [
   ["نصیری", "Nasiri"], ["یگانه", "Yeganeh"], ["وکیلی", "Vakili"], ["آقایی", "Aghaei"], ["رسولی", "Rasouli"],
   ["ایزدی", "Izadi"], ["شاکری", "Shakeri"], ["فرجی", "Faraji"], ["بابایی", "Babaei"], ["اسماعیلی", "Esmaeili"],
   ["نادری", "Naderi"], ["کیانی", "Kiani"], ["سعیدی", "Saeedi"], ["مقدم", "Moghaddam"], ["رحمانی", "Rahmani"],
+];
+
+/** Roots + suffixes for compound surnames (e.g. کریم + پور = کریم‌پور). */
+export const SURNAME_ROOTS: Name[] = [
+  ["حسن", "Hasan"], ["کریم", "Karim"], ["رحیم", "Rahim"], ["علی", "Ali"], ["محمد", "Mohammad"],
+  ["ابراهیم", "Ebrahim"], ["اسماعیل", "Esmaeil"], ["جعفر", "Jafar"], ["قاسم", "Ghasem"], ["نصر", "Nasr"],
+  ["صادق", "Sadegh"], ["شریف", "Sharif"], ["امیر", "Amir"], ["رضا", "Reza"], ["مهدی", "Mahdi"],
+  ["نیک", "Nik"], ["مهر", "Mehr"], ["شاه", "Shah"], ["خسرو", "Khosrow"], ["بهرام", "Bahram"],
+  ["کاظم", "Kazem"], ["تقی", "Taghi"], ["هاشم", "Hashem"], ["یزدان", "Yazdan"], ["فرخ", "Farrokh"],
+  ["اکبر", "Akbar"], ["عباس", "Abbas"], ["موسی", "Mousa"], ["یوسف", "Yousef"], ["داوود", "Davood"],
+];
+export const SURNAME_SUFFIXES: Name[] = [
+  ["زاده", "zadeh"], ["پور", "pour"], ["نیا", "nia"], ["فر", "far"], ["نژاد", "nejad"],
+  ["راد", "rad"], ["منش", "manesh"], ["وند", "vand"], ["خانی", "khani"], ["لو", "loo"], ["ی", "i"],
 ];
 
 /**

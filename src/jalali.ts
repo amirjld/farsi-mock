@@ -106,3 +106,17 @@ export function formatGregorian(date: Date): string {
 export function toPersianDigits(s: string | number): string {
   return String(s).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
 }
+
+/** Latin (ASCII) digits from Persian or Arabic-Indic digits. */
+export function toLatinDigits(s: string): string {
+  return s.replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0)).replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+}
+
+/** Parse "1405/07/28" (or with - . separators, Persian digits allowed). Throws on invalid dates. */
+export function parseJalali(s: string): { jy: number; jm: number; jd: number } {
+  const m = /^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})$/.exec(toLatinDigits(s.trim()));
+  if (!m) throw new Error(`Invalid Jalali date "${s}" (expected YYYY/MM/DD)`);
+  const [jy, jm, jd] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (jm < 1 || jm > 12 || jd < 1 || jd > jalaliMonthLength(jy, jm)) throw new Error(`Invalid Jalali date "${s}"`);
+  return { jy, jm, jd };
+}

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createIran, literal, toCsv, toJsonl, fromJson, Schema, type SchemaDef } from "../src/index.js";
 import { validateNationalId, validateSheba } from "./parsi/validators.js";
 import { landlineProvince } from "./parsi/phone.js";
-import { MALE_NAMES } from "../src/data/names.js";
+import { MALE_NAMES, UNISEX_NAMES } from "../src/data/names.js";
 
 const REF = "2026-10-20T00:00:00Z";
 const make = (seed = 42) => createIran({ seed, referenceDate: REF });
@@ -49,7 +49,7 @@ describe("schema consistency", () => {
       expect(addr.zip).toBe(r.zip);
       expect(landlineProvince(r.tel as string).province?.fa).toBe(r.province);
       expect(validateNationalId(r.nid as string)).toBe(true);
-      expect(MALE_NAMES.some((n) => n[0] === r.first)).toBe(r.sex === "male");
+      if (!UNISEX_NAMES.some((n) => n[0] === r.first)) expect(MALE_NAMES.some((n) => n[0] === r.first)).toBe(r.sex === "male");
       expect(r.status).toBe("active");
       expect(r.score).toBe(10);
       expect(r.verified).toBe(true);
