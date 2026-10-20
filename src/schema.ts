@@ -493,6 +493,15 @@ export function fromJson(f: Iran, json: unknown): Gen {
   if ("$weighted" in o) { const list = o.$weighted as [unknown, number][]; return (x) => clone(x.helpers.weightedArrayElement(list)); }
   if ("$regex" in o) { const re = String(o.$regex); return (x) => x.helpers.fromRegExp(re); }
   if ("$ref" in o) { const [name, ...rest] = String(o.$ref).split("."); return makeRef(name, { field: rest.join(".") || "id", unique: o.unique === true }); }
+  if ("$clamp" in o) {
+    const r = compile(f, fromJson(f, o.$clamp)); const lo = Number(o.min ?? -Infinity), hi = Number(o.max ?? Infinity);
+    return (x, ctx) => { const v = r(ctx); return typeof v === "number" ? (v < lo || v > hi ? (Number.isInteger(lo) && Number.isInteger(hi) ? x.int(lo, hi) : x.float(lo, hi, 2)) : v) : v; };
+  }
+  if ("$truncate" in o) { const r = compile(f, fromJson(f, o.$truncate)); const n = Number(o.max); return (_x, ctx) => { const v = r(ctx); return typeof v === "string" ? [...v].slice(0, n).join("").trim() : v; }; }
+  if ("$string" in o) { const r = compile(f, fromJson(f, o.$string)); return (_x, ctx) => String(r(ctx)); }
+  if ("$number" in o) { const r = compile(f, fromJson(f, o.$number)); return (_x, ctx) => Number(r(ctx)); }
+  if ("$dateTime" in o) { const r = compile(f, fromJson(f, o.$dateTime)); return (_x, ctx) => new Date(String(r(ctx))).toISOString(); }
+  if ("$dateOnly" in o) { const r = compile(f, fromJson(f, o.$dateOnly)); return (_x, ctx) => String(r(ctx)).slice(0, 10); }
   if ("$gen" in o) {
     const name = String(o.$gen);
     if (!GEN_ALLOW.includes(name)) throw new Error(`farsi-mock: $gen "${name}" is not allowed. Allowed: ${GEN_ALLOW.join(", ")}`);

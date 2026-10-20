@@ -15,6 +15,7 @@ import { nationalIdCheckDigit, luhnCheckDigit, shebaCheckDigits, legalCheckDigit
 import { createPresets } from "./presets.js";
 import { Schema, type SchemaDef, type SchemaOptions, ArrayMarker, UniqueMarker, OptionalMarker, OneOfMarker, type Gen, type RecordContext, makeRef, type RefSource, generateDataset, type DatasetSpec, type DatasetResult, type RefOptions } from "./schema.js";
 import type { Infer, InferGen } from "./types.js";
+import * as inference from "./infer/index.js";
 
 export type Gender = "male" | "female";
 export type ProvinceInput = string;
@@ -522,6 +523,22 @@ export class Iran {
       return this.jalali.between(from, to, { workdaysOnly: true, hours: [8, 17] });
     },
   };
+
+  // ---------- schema inference ----------
+  /** Infer a schema from a zod object (v3 or v4; zod is not a dependency). */
+  fromZod(schema: unknown, opts?: inference.InferOptions) { return inference.fromZod(this, schema, opts); }
+  /** Infer from a JSON Schema object. */
+  fromJsonSchema(json: unknown, opts?: inference.InferOptions) { return inference.fromJsonSchema(this, json, opts); }
+  /** Infer from an OpenAPI 3 / Swagger 2 document (components.schemas / definitions). */
+  fromOpenAPI(doc: unknown, opts?: inference.InferOptions) { return inference.fromOpenAPI(this, doc, opts); }
+  /** Infer from schema.prisma text (parsed as text, no Prisma dependency). */
+  fromPrisma(text: string, opts?: inference.InferOptions & { useDbNames?: boolean }) { return inference.fromPrisma(this, text, opts); }
+  /** Infer from a mongoose Schema or definition object. */
+  fromMongoose(def: unknown, opts?: inference.InferOptions & { addId?: boolean }) { return inference.fromMongoose(this, def, opts); }
+  /** Infer from sample JSON records (shapes and formats only; values are not copied). */
+  fromSample(json: unknown, opts?: inference.InferOptions) { return inference.fromSample(this, json, opts); }
+  /** Auto-detect the input kind and infer. */
+  infer(input: unknown, opts?: inference.InferOptions & { from?: inference.InferSource }) { return inference.infer(this, input, opts); }
 
   // ---------- text ----------
   word(): string { return this.rng.pick(WORDS); }

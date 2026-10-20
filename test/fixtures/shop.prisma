@@ -1,0 +1,47 @@
+// Example schema (made up for tests)
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum Role { ADMIN CUSTOMER SELLER }
+
+model User {
+  id           String   @id @default(uuid())
+  codeMelli    String   @unique @db.Char(10)
+  first_name   String
+  lastName     String
+  mobile       String   @unique
+  email        String?  @unique
+  role         Role     @default(CUSTOMER)
+  isActive     Boolean  @default(true)
+  birthDate    DateTime?
+  ostan        String?
+  shahr        String?
+  zipCode      String?  @map("zip_code")
+  orders       Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(120)
+  sku       String   @unique
+  price     Int
+  stock     Int      @default(0)
+  category  String
+  tags      String[]
+}
+
+model Order {
+  id          Int       @id @default(autoincrement())
+  orderNumber String    @unique
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  productId   Int
+  quantity    Int
+  totalPrice  Decimal
+  shebaNumber String?
+  paidAt      DateTime?
+  status      String
+  shippingAddress String
+}
