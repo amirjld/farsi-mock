@@ -128,7 +128,8 @@ User.one();
 User.many(50);
 ```
 
-Output of a smaller schema (seed 42; fields nationalCode, full_name, phone_number, city, landline, createdAt):
+Output of a smaller schema (`createIran({ seed: 42, referenceDate: "2026-10-20" })`, same `province` context;
+fields nationalCode, full_name, phone_number (irancell), city, landline, createdAt):
 
 ```json
 [
@@ -395,7 +396,8 @@ Full guide: [docs/FRONTEND.md](./docs/FRONTEND.md). Examples: [Next.js](./exampl
 
 ## AI assistants
 
-`npx farsi-mock mcp` is a dependency-free MCP server (tools: generate, schema, infer, validate, paths).
+`npx farsi-mock mcp` is a dependency-free MCP server (tools: `farsi_mock_generate`, `farsi_mock_schema`,
+`farsi_mock_infer`, `farsi_mock_validate`, `farsi_mock_paths`).
 Other MCP servers can reuse `tools` and `callTool` from `farsi-mock/ai`. There is also an agent skill at
 [`skills/farsi-mock/SKILL.md`](./skills/farsi-mock/SKILL.md) and an [`llms.txt`](./llms.txt). Details in
 [docs/AI.md](./docs/AI.md).

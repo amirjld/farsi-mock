@@ -192,7 +192,7 @@ export const apiFetch = createApiFetch({
 
 ## برای AI
 
-`npx farsi-mock mcp` یه سرور MCP بدون وابستگیه (ابزارهای generate، schema، infer، validate و paths). توی سرورهای MCP دیگه (مثلاً parsi-mcp) هم می‌شه `tools` و `callTool` رو از `farsi-mock/ai` ایمپورت کرد. توضیح کامل: [docs/AI.md](./docs/AI.md). یه skill هم توی [`skills/farsi-mock`](./skills/farsi-mock/SKILL.md) هست.
+`npx farsi-mock mcp` یه سرور MCP بدون وابستگیه (ابزارهای `farsi_mock_generate`، `farsi_mock_schema`، `farsi_mock_infer`، `farsi_mock_validate` و `farsi_mock_paths`). توی سرورهای MCP دیگه (مثلاً parsi-mcp) هم می‌شه `tools` و `callTool` رو از `farsi-mock/ai` ایمپورت کرد. توضیح کامل: [docs/AI.md](./docs/AI.md). یه skill هم توی [`skills/farsi-mock`](./skills/farsi-mock/SKILL.md) هست.
 
 ## دیتای واقعی‌نماتر
 

@@ -52,7 +52,18 @@ export class InferredSchema {
 
   /** Generate all models together, with references resolved. */
   dataset(count: number | Record<string, DatasetCount> = this.opts.count ?? 10): Record<string, Record<string, unknown>[]> {
-    const spec = Object.fromEntries(this.models.map((m) => [m.name, {
+    // referenced models first (e.g. User before Order when Order.userId is ref:User.id); declaration order otherwise
+    const byName = new Map(this.models.map((m) => [m.name, m]));
+    const ordered: typeof this.models = [];
+    const seen = new Set<string>();
+    const visit = (m: (typeof this.models)[number]) => {
+      if (seen.has(m.name)) return;
+      seen.add(m.name);
+      for (const [, dep] of JSON.stringify(m.fields).matchAll(/"ref:([^".]+)\./g)) { const d = byName.get(dep); if (d && d !== m) visit(d); }
+      ordered.push(m);
+    };
+    this.models.forEach(visit);
+    const spec = Object.fromEntries(ordered.map((m) => [m.name, {
       schema: new Schema(this.f, fromJson(this.f, m.fields) as SchemaDef, this.opts.schemaOptions),
       count: typeof count === "number" ? count : count[m.name] ?? 10,
     }]));

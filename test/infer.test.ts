@@ -216,3 +216,30 @@ describe("samples", () => {
     expect(run()).toEqual(run());
   });
 });
+
+describe("id-formatted foreign keys (2.0.1)", () => {
+  const fieldLine = (explain: string, field: string) => explain.split("\n").find((l) => l.trimStart().startsWith(field + " ")) ?? "";
+
+  it("OpenAPI: a uuid userId links to User.id instead of a random uuid", () => {
+    const doc = JSON.parse(readFileSync(new URL("./fixtures/shop.openapi.json", import.meta.url), "utf8"));
+    const r = f.fromOpenAPI(doc);
+    expect(fieldLine(r.explain(), "Order.userId")).toContain("ref:User.id");
+    const d = r.dataset(10);
+    const ids = new Set(d.User.map((u) => u.id));
+    for (const o of d.Order) expect(ids.has(o.userId)).toBe(true);
+  });
+
+  it("zod: z.string().uuid() userId links to User.id", () => {
+    // Post is declared before User: dataset() still generates User first so the refs resolve
+    const r = f.fromZod({ Post: z.object({ id: z.string().uuid(), userId: z.string().uuid() }), User: z.object({ id: z.string().uuid(), name: z.string() }) });
+    expect(fieldLine(r.explain(), "Post.userId")).toContain("ref:User.id");
+    const d = r.dataset({ User: 4, Post: 12 });
+    const ids = new Set(d.User.map((u) => u.id));
+    for (const p of d.Post) { expect(p.userId).toMatch(/^[0-9a-f-]{36}$/); expect(ids.has(p.userId)).toBe(true); }
+  });
+
+  it("a uuid *Id with no matching model stays a random uuid", () => {
+    const r = f.fromZod({ User: z.object({ id: z.string().uuid() }), Post: z.object({ id: z.string().uuid(), sessionId: z.string().uuid() }) });
+    expect(fieldLine(r.explain(), "Post.sessionId")).toContain("id.uuid");
+  });
+});

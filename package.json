@@ -1,6 +1,6 @@
 {
   "name": "farsi-mock",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Realistic, algorithmically valid Iranian test data (Faker for Iran): کد ملی, Sheba, cards, mobiles, addresses, toman prices, Jalali dates. Schema inference from Prisma/Zod/Mongoose/OpenAPI, SQL/Mongo/TS output, seed helpers, mock API and MCP server.",
   "keywords": [
     "faker",

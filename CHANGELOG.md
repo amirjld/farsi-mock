@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-23
+
+### Fixed
+
+- **Schema inference: id-formatted foreign keys are linked.** A `uuid` / `objectid` / `cuid` field named
+  after a model (`userId`, `user_id`, `authorId`, ...) now becomes `ref:User.id` when that model exists, instead
+  of a random id from its format. Affects `fromOpenAPI`, `fromJsonSchema`, `fromZod` (`z.string().uuid()`)
+  and frontend mock mode, where e.g. `Order.userId` now points at users that exist in the mock.
+  `dataset()` on inferred schemas generates referenced models first, whatever their declaration order.
+- **Frontend mock runtime: path params are decoded exactly once.** `/products/100%25` now yields the id `100%`
+  (it was decoded twice and threw `URIError: URI malformed`), and a malformed percent-sequence in the path
+  returns a 400 response instead of throwing from `handle()` / `fetch()` / adapters.
+- Docs: the MCP tool names in the README (EN/FA) are the real ones (`farsi_mock_generate`, `farsi_mock_schema`,
+  `farsi_mock_infer`, `farsi_mock_validate`, `farsi_mock_paths`), and the README's seeded sample output now
+  states its `referenceDate` so it reproduces exactly.
+
+## [2.0.0] - 2026-10-20
+
 ### Added
 
 - **Frontend mock mode** (`farsi-mock/frontend`, `farsi-mock/frontend/runtime`, `farsi-mock/frontend/client`): a mock backend that runs
@@ -35,11 +53,6 @@ All notable changes to this project are documented here. The format is based on
   - `openApiToTs` (OpenAPI -> TypeScript types).
 - Generator paths `internet.image`, `internet.avatar`, `internet.thumbnail`: offline SVG placeholder images
   (data URIs) that render without network.
-
-## [2.0.0] - 2026-10-20
-
-### Added
-
 - **Schema inference**: `iran.fromZod`, `fromJsonSchema`, `fromOpenAPI`, `fromPrisma`, `fromMongoose`,
   `fromSample` and auto-detecting `iran.infer`, plus `farsi-mock infer` (`--from`, `--model`,
   `--override`, `--overrides`, `--null-rate`, `--explain`, `--write`, `--generate`).
@@ -106,6 +119,7 @@ All notable changes to this project are documented here. The format is based on
   orders; flexible schemas with shared per-record context; presets; datasets with refs; JSON/CSV/JSONL
   output; CLI; safe national IDs (`000` prefix) with opt-in `realisticIds`.
 
-[Unreleased]: https://github.com/amirjld/farsi-mock/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/amirjld/farsi-mock/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/amirjld/farsi-mock/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/amirjld/farsi-mock/compare/74fced3...v2.0.0
 [0.1.0]: https://github.com/amirjld/farsi-mock/tree/74fced3

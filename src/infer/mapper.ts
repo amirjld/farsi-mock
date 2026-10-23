@@ -165,6 +165,12 @@ function mapField(spec: FieldSpec, path: string, ctx: Ctx, kind: ModelKind): Jso
   if (spec.enum?.length) return add(wrap(spec, { $pick: [...spec.enum] }, ctx, true), 0.9, "enum values");
   if (spec.type === "boolean") { const [g, r] = boolGen(spec.name); return add(wrap(spec, g, ctx, true), 0.9, r); }
 
+  // id-formatted foreign keys (userId: uuid / ObjectId / cuid) point at the model they name, before the format wins
+  if (spec.format && ["uuid", "objectid", "cuid"].includes(spec.format)) {
+    const t = tokenize(spec.name);
+    const target = t.length > 1 && t[t.length - 1] === "id" ? findModel(ctx, t.slice(0, -1).join("")) : undefined;
+    if (target) return add(wrap(spec, `ref:${target}.${ctx.models.get(`__id:${target}`) ?? "id"}`, ctx, true), 0.85, `foreign key to ${target} (by name)`);
+  }
   const alias = matchAlias(spec.name, kind, spec.type);
   // strong format evidence (from samples or explicit formats) beats a weak alias
   const fmt = spec.format ? FORMAT_GEN[spec.format] : undefined;

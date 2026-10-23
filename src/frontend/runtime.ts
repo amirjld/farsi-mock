@@ -110,12 +110,25 @@ export function projectToFields(value: Rec, fields: Record<string, JsonGen>): Re
 }
 
 /** Compile "/products/{id}" or "/products/:id" to a regex; `suffix` lets any prefix precede it. */
+/** decodeURIComponent that returns undefined instead of throwing on malformed input (e.g. "100%" or "%E0%A4%A"). */
+const safeDecode = (s: string): string | undefined => { try { return decodeURIComponent(s); } catch { return undefined; } };
+const safeEncodeURI = (s: string): string => { try { return encodeURI(s); } catch { return s; } };
+/** Path params decoded exactly once; `bad` is set when one of them is not valid percent-encoding. */
+const decodeParams = (names: string[], m: RegExpExecArray): { params: Record<string, string>; bad: boolean } => {
+  let bad = false;
+  const params = Object.fromEntries(names.map((n, i) => { const v = safeDecode(m[i + 1]); if (v === undefined) bad = true; return [n, v ?? m[i + 1]]; }));
+  return { params, bad };
+};
+
 function pathRegex(path: string, suffix: boolean): { re: RegExp; names: string[] } {
   const names: string[] = [];
   const body = path.replace(/\/+$/, "").split("/").map((seg) => {
     const m = /^\{([^}]+)\}$/.exec(seg) ?? /^:(\w+)$/.exec(seg);
     if (m) { names.push(m[1]); return "([^/]+)"; }
-    return seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const lit = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // request paths are matched undecoded, so a literal segment also matches its percent-encoded form
+    const enc = safeEncodeURI(seg);
+    return enc !== seg ? `(?:${lit(seg)}|${lit(enc)})` : lit(seg);
   }).join("/");
   return { re: new RegExp(`${suffix ? "(?:^|/)" : "^"}${body.replace(/^\//, suffix ? "" : "/")}/?$`), names };
 }
@@ -128,7 +141,7 @@ const LIST_SORT = ["sort", "sortBy", "orderBy", "ordering", "_sort"];
 const LIST_ORDER = ["order", "sortOrder", "direction", "sortDir", "_order"];
 const firstOf = (q: URLSearchParams, names: string[]) => { for (const n of names) if (q.has(n)) return n; return undefined; };
 
-interface Matched { route: MockRoute; params: Record<string, string> }
+interface Matched { route: MockRoute; params: Record<string, string>; bad?: boolean }
 
 type BodyOf<T> = T extends { body?: infer B } ? B : unknown;
 type ResOf<T> = T extends { response: infer R } ? R : unknown;
@@ -290,6 +303,7 @@ export function createMockRuntime<E = EndpointMap>(specIn: MockSpec | Promise<Mo
     spec = s;
     if (s.farsiMockSpec !== 1) throw new Error("farsi-mock: not a compiled mock spec (farsiMockSpec: 1)");
     base = (opts.baseUrl ?? s.basePath ?? "").replace(/^[a-z]+:\/\/[^/]+/i, "").replace(/\/+$/, "");
+    base = safeEncodeURI(safeDecode(base) ?? base); // compared against the undecoded request path
     sig = String(hash(JSON.stringify(s.resources) + JSON.stringify(opts.count ?? "")));
     if (opts.id) {
       const key = `${opts.id}:${seed}:${sig}`;
@@ -313,7 +327,7 @@ export function createMockRuntime<E = EndpointMap>(specIn: MockSpec | Promise<Mo
       for (const c of compiled) {
         if (c.route.method !== method && !(method === "HEAD" && c.route.method === "GET")) continue;
         const m = (loose ? c.loose : c.exact).exec(p);
-        if (m) return { route: c.route, params: Object.fromEntries(c.names.map((n, i) => [n, decodeURIComponent(m[i + 1])])) };
+        if (m) return { route: c.route, ...decodeParams(c.names, m) };
       }
       return undefined;
     };
@@ -326,7 +340,7 @@ export function createMockRuntime<E = EndpointMap>(specIn: MockSpec | Promise<Mo
     for (const h of handlers) {
       if (h.method !== "*" && h.method !== method) continue;
       const m = (stripped !== undefined ? h.exact.exec(stripped) : null) ?? h.loose.exec(path);
-      if (m) return { h, params: Object.fromEntries(h.names.map((n, i) => [n, decodeURIComponent(m[i + 1])])) };
+      if (m) return { h, ...decodeParams(h.names, m) };
     }
     return undefined;
   };
@@ -526,13 +540,14 @@ export function createMockRuntime<E = EndpointMap>(specIn: MockSpec | Promise<Mo
 
   // ---------------- dispatch
   const dispatch = async (method: string, url: URL, headers: MockRequest["headers"] | Headers, body: unknown): Promise<MockResponse | undefined> => {
-    const path = decodeURIComponent(url.pathname);
+    // match on the raw path and decode each path param once (a decoded "%" must not be decoded again)
+    const path = url.pathname;
     const q = url.searchParams;
     const h = matchHandler(method, path);
     const m = h ? undefined : match(method, path);
     if (!h && !m) return undefined;
     const route = m?.route;
-    const reqF = mkIran(`${seed}:${method}:${path}`);
+    const reqF = mkIran(`${seed}:${method}:${safeDecode(path) ?? path}`);
     const err = errorFor(method, route, q, headers);
     const d = opts.delay, qd = Number(q.get("__delay") ?? headerOf(headers, "x-mock-delay"));
     const wait = Number.isFinite(qd) && qd > 0 ? qd : d === undefined ? 0 : typeof d === "number" ? d : d[0] + Math.random() * (d[1] - d[0]);
@@ -542,6 +557,7 @@ export function createMockRuntime<E = EndpointMap>(specIn: MockSpec | Promise<Mo
       headers: { ...(status === 204 || b === undefined ? {} : { "content-type": "application/json; charset=utf-8" }), "x-mock": "farsi-mock", ...extraHeaders },
     });
     if (err) return reply(err.status, err.body !== undefined ? err.body : errorBody(route, err.status, reqF, url));
+    if (h?.bad || m?.bad) return reply(400, errorBody(route, 400, reqF, url));
 
     if (h) {
       const ctx: MockContext = {
@@ -709,8 +725,7 @@ export function createMockRuntime<E = EndpointMap>(specIn: MockSpec | Promise<Mo
     matches(method, url) {
       if (!isReady) return false;
       const u = new URL(url, "http://mock.local");
-      const p = decodeURIComponent(u.pathname);
-      return !!(matchHandler(method.toUpperCase(), p) ?? match(method.toUpperCase(), p));
+      return !!(matchHandler(method.toUpperCase(), u.pathname) ?? match(method.toUpperCase(), u.pathname));
     },
     rows: (n) => allRows(n),
     reset() {

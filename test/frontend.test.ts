@@ -213,6 +213,35 @@ describe("mock API: query params", () => {
   });
 });
 
+describe("mock API: 2.0.1 regressions", () => {
+  it("orders reference existing users (uuid foreign keys are linked)", async () => {
+    const api = mk();
+    const users = (await get(api, "/v1/users?limit=100")).body as { id: string }[];
+    const orders = (await get(api, "/v1/orders?pageSize=50")).body.result.items as { userId: string }[];
+    expect(users.length).toBeGreaterThan(0);
+    expect(orders.length).toBeGreaterThan(0);
+    const ids = new Set(users.map((u) => u.id));
+    for (const o of orders) expect(ids.has(o.userId)).toBe(true);
+  });
+
+  it("decodes path params exactly once", async () => {
+    const api = mk();
+    const r = await get(api, "/v1/products/100%25");
+    expect(r.status).toBe(200);
+    expect(r.body.data.id).toBe("100%");
+    const viaFetch = await api.fetch("https://api.example.com/v1/products/100%25");
+    expect(viaFetch.status).toBe(200);
+  });
+
+  it("a malformed %-sequence in the path is a 400, not a thrown URIError", async () => {
+    const api = mk();
+    expect((await get(api, "/v1/products/%E0%A4%A")).status).toBe(400);
+    expect((await get(api, "/v1/products/100%")).status).toBe(400);
+    expect((await api.fetch("https://api.example.com/v1/products/%E0%A4%A")).status).toBe(400);
+    expect(api.matches("GET", "/v1/products/%E0%A4%A")).toBe(true);
+  });
+});
+
 describe("mock API: CRUD, persistence, errors, latency", () => {
   it("POST/PUT/PATCH/DELETE mutate the in-memory store", async () => {
     const api = mk();
